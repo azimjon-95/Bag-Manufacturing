@@ -40,22 +40,19 @@ const swaggerOptions = {
       title: "Bag Manufacturing Factory Server APIs",
       version: "1.0.0",
       description:
-        "A comprehensive set of server-side APIs designed for managing operations in a bag manufacturing factory. This includes endpoints for handling workers, materials, and administrative tasks to streamline production processes.",
+        "A comprehensive set of server-side APIs designed for managing operations in a bag manufacturing factory.",
     },
     servers: [
-      {
-        url: "https://bag-manufacturing.vercel.app",
-      },
-      {
-        url: "http://localhost:5000",
-      },
+      { url: "https://bag-manufacturing.vercel.app" },
+      { url: "http://localhost:5000" },
     ],
   },
-  apis: ["./routes/router.js"], // Route fayllarini ko‘rsatish
+  apis: ["./routes/router.js"],
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+console.log("Swagger Spec Generated:", JSON.stringify(swaggerSpec, null, 2)); // Swagger specni tekshirish
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, { explorer: true }));
 
 // Socket.IO sozlamalari
 app.set("socket", io);
