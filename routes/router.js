@@ -2,7 +2,7 @@ const router = require("express").Router();
 const workerController = require("../controller/workerController");
 const workerValidation = require("../validation/WorkerValidation");
 const materialController = require("../controller/materialController");
-const materialValidation = require("../validation/MaterialValidation");
+const materialValidation = require("../validation/materialValidation");
 const adminController = require("../controller/adminController");
 const adminValidation = require("../validation/adminValidation");
 
