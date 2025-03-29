@@ -5,7 +5,6 @@ const cors = require("cors");
 const PORT = process.env.PORT || 5000;
 const notfound = require("./middleware/notfound.middleware");
 const router = require("./routes/router");
-const authMiddleware = require("./middleware/AuthMiddleware");
 const { createServer } = require("node:http");
 const soket = require("./socket");
 const swaggerUi = require("swagger-ui-express");
@@ -45,10 +44,10 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: "https://bag-manufacturing.vercel.app"
+        url: "https://bag-manufacturing.vercel.app",
       },
       {
-        url: "http://localhost:5000"
+        url: "http://localhost:5000",
       },
     ],
   },
@@ -57,10 +56,10 @@ const swaggerOptions = {
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 // Socket.IO sozlamalari
 app.set("socket", io);
 soket.connect(io);
-
 
 app.use("/api", /* authMiddleware, */ router); // Routerlarni ulash
 app.get("/", (req, res) => res.send("Salom dunyo")); // Bosh sahifa
@@ -68,12 +67,6 @@ app.use(notfound); // 404 middleware
 
 // Serverni ishga tushirish
 server.listen(PORT, () => console.log(`http://localhost:${PORT}`));
-
-
-
-
-
-
 
 
 
