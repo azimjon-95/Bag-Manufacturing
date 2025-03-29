@@ -45,7 +45,7 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: "https://sumka-backend.vercel.app"
+        url: "https://bag-manufacturing.vercel.app"
       },
       {
         url: "http://localhost:5000"
