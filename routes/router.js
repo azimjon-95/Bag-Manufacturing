@@ -5,7 +5,7 @@ const materialController = require("../controller/materialController");
 const materialValidation = require("../validation/materialValidation");
 const adminController = require("../controller/adminController");
 const adminValidation = require("../validation/adminValidation");
-
+const Attendance = require('../controller/attendanceCtrl');
 //==========================================================
 // Workers Routes
 /**
@@ -1075,4 +1075,230 @@ router.delete("/admin/delete/:id", adminController.deleteAdmin);
  */
 router.post("/admin/login", adminController.login);
 
+
+
+//===========================================
+// Attendance
+/**
+ * @swagger
+ * /api/check-in:
+ *   post:
+ *     summary: Record worker check-in
+ *     tags: [Attendance]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - workerId
+ *             properties:
+ *               workerId:
+ *                 type: string
+ *                 description: ID of the worker checking in
+ *               startTime:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Check-in time (optional, defaults to current time)
+ *     responses:
+ *       201:
+ *         description: Check-in recorded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                   description: Attendance record ID
+ *                 workerId:
+ *                   type: string
+ *                   description: Worker ID reference
+ *                 date:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Date of attendance
+ *                 startTime:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Check-in timestamp
+ *                 endTime:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Check-out timestamp (null until checked out)
+ *                 totalHours:
+ *                   type: number
+ *                   description: Total hours worked (calculated after check-out)
+ *                 taskCount:
+ *                   type: number
+ *                   description: Number of tasks completed (for task-based workers)
+ *                   default: 0
+ *                 dailySalary:
+ *                   type: number
+ *                   description: Calculated salary for the day
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Record creation timestamp
+ *                 updatedAt:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Last update timestamp
+ *       400:
+ *         description: Validation error or worker not found
+ *       500:
+ *         description: Server error
+ */
+router.post('/check-in', Attendance.checkIn);
+
+/**
+ * @swagger
+ * /api/check-out/{id}:
+ *   put:
+ *     summary: Record worker check-out
+ *     tags: [Attendance]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Attendance record ID
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               endTime:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Check-out time (optional, defaults to current time)
+ *               taskCount:
+ *                 type: number
+ *                 description: Number of tasks completed (for task-based workers)
+ *     responses:
+ *       200:
+ *         description: Check-out recorded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                   description: Attendance record ID
+ *                 workerId:
+ *                   type: string
+ *                   description: Worker ID reference
+ *                 date:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Date of attendance
+ *                 startTime:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Check-in timestamp
+ *                 endTime:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Check-out timestamp
+ *                 totalHours:
+ *                   type: number
+ *                   description: Total hours worked
+ *                 taskCount:
+ *                   type: number
+ *                   description: Number of tasks completed (for task-based workers)
+ *                 dailySalary:
+ *                   type: number
+ *                   description: Calculated salary for the day
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Record creation timestamp
+ *                 updatedAt:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Last update timestamp
+ *       404:
+ *         description: Attendance record not found
+ *       400:
+ *         description: Validation error
+ *       500:
+ *         description: Server error
+ */
+router.put('/check-out/:id', Attendance.checkOut);
+
+/**
+ * @swagger
+ * /api/report/{workerId}:
+ *   get:
+ *     summary: Get attendance report for a worker
+ *     tags: [Attendance]
+ *     parameters:
+ *       - in: path
+ *         name: workerId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Worker ID to fetch attendance records for
+ *     responses:
+ *       200:
+ *         description: Attendance report retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                     description: Attendance record ID
+ *                   workerId:
+ *                     type: string
+ *                     description: Worker ID reference
+ *                   date:
+ *                     type: string
+ *                     format: date-time
+ *                     description: Date of attendance
+ *                   startTime:
+ *                     type: string
+ *                     format: date-time
+ *                     description: Check-in timestamp
+ *                   endTime:
+ *                     type: string
+ *                     format: date-time
+ *                     description: Check-out timestamp
+ *                   totalHours:
+ *                     type: number
+ *                     description: Total hours worked
+ *                   taskCount:
+ *                     type: number
+ *                     description: Number of tasks completed (for task-based workers)
+ *                   dailySalary:
+ *                     type: number
+ *                     description: Calculated salary for the day
+ *                   createdAt:
+ *                     type: string
+ *                     format: date-time
+ *                     description: Record creation timestamp
+ *                   updatedAt:
+ *                     type: string
+ *                     format: date-time
+ *                     description: Last update timestamp
+ *       404:
+ *         description: Worker not found or no attendance records
+ *       500:
+ *         description: Server error
+ */
+router.get('/report/:workerId', Attendance.getById);
+
 module.exports = router;
+
+
+
+
+
+
