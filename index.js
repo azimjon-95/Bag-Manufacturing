@@ -43,7 +43,7 @@ const swaggerOptions = {
         "A comprehensive set of server-side APIs designed for managing operations in a bag manufacturing factory.",
     },
     servers: [
-      { url: "https://bag-manufacturing.up.railway.app/" },
+      { url: "https://bag-manufacturing.up.railway.app" },
       { url: "http://localhost:5000" },
     ],
   },
