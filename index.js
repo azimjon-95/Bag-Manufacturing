@@ -19,7 +19,7 @@ app.use(express.json());
 
 // CORS sozlamalari
 const corsOptions = {
-  origin: ["http://localhost:3000", "https://bag-manufacturing.vercel.app"],
+  origin: ["http://localhost:3000", "https://bag-manufacturing.up.railway.app/"],
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   credentials: true,
 };
@@ -43,7 +43,7 @@ const swaggerOptions = {
         "A comprehensive set of server-side APIs designed for managing operations in a bag manufacturing factory.",
     },
     servers: [
-      { url: "https://summka-eqz9fcig0-azimjon95s-projects.vercel.app" },
+      { url: "https://bag-manufacturing.up.railway.app/" },
       { url: "http://localhost:5000" },
     ],
   },
