@@ -1,11 +1,17 @@
 const router = require("express").Router();
 const workerController = require("../controller/workerController");
 const workerValidation = require("../validation/WorkerValidation");
-const materialController = require("../controller/materialController");
-const materialValidation = require("../validation/materialValidation");
+const { validateAttendanceScan, validatePieceWork } = require("../validation/attendanceValidation");
 const adminController = require("../controller/adminController");
 const adminValidation = require("../validation/adminValidation");
-const Attendance = require('../controller/attendanceCtrl');
+const AttendanceController = require('../controller/attendanceCtrl');
+const { validateWarehouse, validateMaterial } = require("../validation/materialValidation");
+const CompanyController = require('../controller/companyController');
+const validateCompany = require('../validation/companyValidation');
+const validatePiece = require('../validation/pieceValidation');
+const pieceController = require('../controller/pieceController');
+const warehouseController = require("../controller/materialController");
+
 //==========================================================
 // Workers Routes
 /**
@@ -363,398 +369,6 @@ router.put("/workers/status/:id", workerController.changeStatus);
 router.delete("/workers/delete/:id", workerController.deleteWorker);
 
 //==========================================================
-// Materials Routes
-/**
- * @swagger
- * /api/materials/all:
- *   get:
- *     summary: Fetch all materials
- *     tags: [Materials]
- *     responses:
- *       200:
- *         description: List of materials
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   _id:
- *                     type: string
- *                     description: Material ID
- *                   name:
- *                     type: string
- *                     description: Material name
- *                   code:
- *                     type: string
- *                     description: Unique material code
- *                   unit:
- *                     type: string
- *                     enum: ["kg", "piece", "meter", "liter", "roll"]
- *                     description: Unit of measurement
- *                   quantity:
- *                     type: number
- *                     description: Stock quantity
- *                     minimum: 0
- *                   supplier:
- *                     type: string
- *                     description: Material supplier
- *                   receivedDate:
- *                     type: string
- *                     format: date-time
- *                     description: Date received
- *                   createdAt:
- *                     type: string
- *                     format: date-time
- *                     description: Creation timestamp
- *                   updatedAt:
- *                     type: string
- *                     format: date-time
- *                     description: Last update timestamp
- *       500:
- *         description: Server error
- */
-router.get("/materials/all", materialController.getMaterials);
-
-/**
- * @swagger
- * /api/materials/{id}:
- *   get:
- *     summary: Fetch a material by ID
- *     tags: [Materials]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: Material ID
- *     responses:
- *       200:
- *         description: Material details
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 _id:
- *                   type: string
- *                   description: Material ID
- *                 name:
- *                   type: string
- *                   description: Material name
- *                 code:
- *                   type: string
- *                   description: Unique material code
- *                 unit:
- *                   type: string
- *                   enum: ["kg", "piece", "meter", "liter", "roll"]
- *                   description: Unit of measurement
- *                 quantity:
- *                   type: number
- *                   description: Stock quantity
- *                   minimum: 0
- *                 supplier:
- *                   type: string
- *                   description: Material supplier
- *                 receivedDate:
- *                   type: string
- *                   format: date-time
- *                   description: Date received
- *                 createdAt:
- *                   type: string
- *                   format: date-time
- *                   description: Creation timestamp
- *                 updatedAt:
- *                   type: string
- *                   format: date-time
- *                   description: Last update timestamp
- *       404:
- *         description: Material not found
- *       500:
- *         description: Server error
- */
-router.get("/materials/:id", materialController.getMaterialById);
-
-/**
- * @swagger
- * /api/materials/create:
- *   post:
- *     summary: Create a new material
- *     tags: [Materials]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - name
- *               - code
- *               - unit
- *               - quantity
- *               - supplier
- *             properties:
- *               name:
- *                 type: string
- *                 description: Material name
- *               code:
- *                 type: string
- *                 description: Unique material code
- *               unit:
- *                 type: string
- *                 enum: ["kg", "piece", "meter", "liter", "roll"]
- *                 description: Unit of measurement
- *               quantity:
- *                 type: number
- *                 description: Stock quantity
- *                 minimum: 0
- *               supplier:
- *                 type: string
- *                 description: Material supplier
- *               receivedDate:
- *                 type: string
- *                 format: date-time
- *                 description: Date received (optional)
- *     responses:
- *       201:
- *         description: Material created
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 _id:
- *                   type: string
- *                   description: Material ID
- *                 name:
- *                   type: string
- *                   description: Material name
- *                 code:
- *                   type: string
- *                   description: Unique material code
- *                 unit:
- *                   type: string
- *                   enum: ["kg", "piece", "meter", "liter", "roll"]
- *                   description: Unit of measurement
- *                 quantity:
- *                   type: number
- *                   description: Stock quantity
- *                   minimum: 0
- *                 supplier:
- *                   type: string
- *                   description: Material supplier
- *                 receivedDate:
- *                   type: string
- *                   format: date-time
- *                   description: Date received
- *                 createdAt:
- *                   type: string
- *                   format: date-time
- *                   description: Creation timestamp
- *                 updatedAt:
- *                   type: string
- *                   format: date-time
- *                   description: Last update timestamp
- *       400:
- *         description: Validation error
- *       500:
- *         description: Server error
- */
-router.post("/materials/create", materialValidation, materialController.createMaterial);
-
-/**
- * @swagger
- * /api/materials/update/{id}:
- *   put:
- *     summary: Update a material
- *     tags: [Materials]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: Material ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - name
- *               - code
- *               - unit
- *               - quantity
- *               - supplier
- *             properties:
- *               name:
- *                 type: string
- *                 description: Material name
- *               code:
- *                 type: string
- *                 description: Unique material code
- *               unit:
- *                 type: string
- *                 enum: ["kg", "piece", "meter", "liter", "roll"]
- *                 description: Unit of measurement
- *               quantity:
- *                 type: number
- *                 description: Stock quantity
- *                 minimum: 0
- *               supplier:
- *                 type: string
- *                 description: Material supplier
- *               receivedDate:
- *                 type: string
- *                 format: date-time
- *                 description: Date received (optional)
- *     responses:
- *       200:
- *         description: Material updated
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 _id:
- *                   type: string
- *                   description: Material ID
- *                 name:
- *                   type: string
- *                   description: Material name
- *                 code:
- *                   type: string
- *                   description: Unique material code
- *                 unit:
- *                   type: string
- *                   enum: ["kg", "piece", "meter", "liter", "roll"]
- *                   description: Unit of measurement
- *                 quantity:
- *                   type: number
- *                   description: Stock quantity
- *                   minimum: 0
- *                 supplier:
- *                   type: string
- *                   description: Material supplier
- *                 receivedDate:
- *                   type: string
- *                   format: date-time
- *                   description: Date received
- *                 createdAt:
- *                   type: string
- *                   format: date-time
- *                   description: Creation timestamp
- *                 updatedAt:
- *                   type: string
- *                   format: date-time
- *                   description: Last update timestamp
- *       404:
- *         description: Material not found
- *       500:
- *         description: Server error
- */
-router.put("/materials/update/:id", materialValidation, materialController.updateMaterial);
-
-/**
- * @swagger
- * /api/materials/stock/{id}:
- *   put:
- *     summary: Update material stock
- *     tags: [Materials]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: Material ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               quantity:
- *                 type: number
- *                 description: New stock quantity
- *                 minimum: 0
- *             required:
- *               - quantity
- *     responses:
- *       200:
- *         description: Stock updated
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 _id:
- *                   type: string
- *                   description: Material ID
- *                 name:
- *                   type: string
- *                   description: Material name
- *                 code:
- *                   type: string
- *                   description: Unique material code
- *                 unit:
- *                   type: string
- *                   enum: ["kg", "piece", "meter", "liter", "roll"]
- *                   description: Unit of measurement
- *                 quantity:
- *                   type: number
- *                   description: Stock quantity
- *                   minimum: 0
- *                 supplier:
- *                   type: string
- *                   description: Material supplier
- *                 receivedDate:
- *                   type: string
- *                   format: date-time
- *                   description: Date received
- *                 createdAt:
- *                   type: string
- *                   format: date-time
- *                   description: Creation timestamp
- *                 updatedAt:
- *                   type: string
- *                   format: date-time
- *                   description: Last update timestamp
- *       404:
- *         description: Material not found
- *       500:
- *         description: Server error
- */
-router.put("/materials/stock/:id", materialController.updateStock);
-
-/**
- * @swagger
- * /api/materials/delete/{id}:
- *   delete:
- *     summary: Delete a material
- *     tags: [Materials]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: Material ID
- *     responses:
- *       200:
- *         description: Material deleted
- *       404:
- *         description: Material not found
- *       500:
- *         description: Server error
- */
-router.delete("/materials/delete/:id", materialController.deleteMaterial);
-
-//==========================================================
 // Admin Routes
 /**
  * @swagger
@@ -1076,14 +690,14 @@ router.delete("/admin/delete/:id", adminController.deleteAdmin);
 router.post("/admin/login", adminController.login);
 
 
+//==========================================================
+// Attendance Routes
 
-//===========================================
-// Attendance
 /**
  * @swagger
- * /api/check-in:
+ * /api/attendance/scan:
  *   post:
- *     summary: Record worker check-in
+ *     summary: Handle QR scan for attendance
  *     tags: [Attendance]
  *     requestBody:
  *       required: true
@@ -1091,72 +705,110 @@ router.post("/admin/login", adminController.login);
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - workerId
  *             properties:
  *               workerId:
  *                 type: string
- *                 description: ID of the worker checking in
- *               startTime:
- *                 type: string
- *                 format: date-time
- *                 description: Check-in time (optional, defaults to current time)
+ *                 description: Worker ID (MongoDB _id used as QR code)
+ *             required:
+ *               - workerId
  *     responses:
  *       201:
- *         description: Check-in recorded successfully
+ *         description: Worker arrival recorded
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 _id:
+ *                 message:
  *                   type: string
- *                   description: Attendance record ID
- *                 workerId:
+ *                   example: "Ishga kelish qayd etildi"
+ *                 attendance:
+ *                   $ref: '#/components/schemas/Attendance'
+ *       200:
+ *         description: Worker departure recorded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
  *                   type: string
- *                   description: Worker ID reference
- *                 date:
- *                   type: string
- *                   format: date-time
- *                   description: Date of attendance
- *                 startTime:
- *                   type: string
- *                   format: date-time
- *                   description: Check-in timestamp
- *                 endTime:
- *                   type: string
- *                   format: date-time
- *                   description: Check-out timestamp (null until checked out)
- *                 totalHours:
- *                   type: number
- *                   description: Total hours worked (calculated after check-out)
- *                 taskCount:
- *                   type: number
- *                   description: Number of tasks completed (for task-based workers)
- *                   default: 0
- *                 dailySalary:
- *                   type: number
- *                   description: Calculated salary for the day
- *                 createdAt:
- *                   type: string
- *                   format: date-time
- *                   description: Record creation timestamp
- *                 updatedAt:
- *                   type: string
- *                   format: date-time
- *                   description: Last update timestamp
+ *                   example: "Ishdan ketish qayd etildi"
+ *                 attendance:
+ *                   $ref: '#/components/schemas/Attendance'
  *       400:
- *         description: Validation error or worker not found
+ *         description: Attendance already completed for today
+ *       404:
+ *         description: Worker not found
  *       500:
  *         description: Server error
  */
-router.post('/check-in', Attendance.checkIn);
+router.post('/scan', validateAttendanceScan, AttendanceController.handleQRScan);
 
 /**
  * @swagger
- * /api/check-out/{id}:
- *   put:
- *     summary: Record worker check-out
+ * /api/attendance/piecework:
+ *   post:
+ *     summary: Add piecework for an attendance record
+ *     tags: [Attendance]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               attendanceId:
+ *                 type: string
+ *                 description: Attendance record ID
+ *               pieceWorkData:
+ *                 type: object
+ *                 properties:
+ *                   taskName:
+ *                     type: string
+ *                     description: Name of the task
+ *                   quantity:
+ *                     type: number
+ *                     description: Number of completed tasks
+ *                   unitPrice:
+ *                     type: number
+ *                     description: Price per task unit
+ *                   totalPrice:
+ *                     type: number
+ *                     description: Total price for the task (automatically calculated as quantity * unitPrice)
+ *                     readOnly: true
+ *                 required:
+ *                   - taskName
+ *                   - quantity
+ *                   - unitPrice
+ *             required:
+ *               - attendanceId
+ *               - pieceWorkData
+ *     responses:
+ *       200:
+ *         description: Piecework added
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Ish qo'shildi"
+ *                 attendance:
+ *                   $ref: '#/components/schemas/Attendance'
+ *       404:
+ *         description: Attendance not found or not piecework type
+ *       500:
+ *         description: Server error
+ */
+router.post('/piecework', validatePieceWork, AttendanceController.addPieceWork);
+
+/**
+ * @swagger
+ * /api/attendance/{id}:
+ *   get:
+ *     summary: Fetch an attendance record by ID
  *     tags: [Attendance]
  *     parameters:
  *       - in: path
@@ -1164,23 +816,216 @@ router.post('/check-in', Attendance.checkIn);
  *         required: true
  *         schema:
  *           type: string
- *         description: Attendance record ID
+ *         description: Attendance ID
+ *     responses:
+ *       200:
+ *         description: Attendance details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Attendance topildi"
+ *                 attendance:
+ *                   $ref: '#/components/schemas/Attendance'
+ *       404:
+ *         description: Attendance not found
+ *       500:
+ *         description: Server error
+ */
+router.get('/attendance/:id', AttendanceController.getAttendanceById);
+
+
+//==========================================================
+// Company Routes
+
+/**
+ * @swagger
+ * /api/company/all:
+ *   get:
+ *     summary: Fetch all companies (only one allowed)
+ *     tags: [Company]
+ *     responses:
+ *       200:
+ *         description: List of companies
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Kompaniyalar ro'yxati"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Company'
+ *       500:
+ *         description: Server error
+ */
+router.get('/company/all', CompanyController.getCompanies);
+
+/**
+ * @swagger
+ * /api/company/create:
+ *   post:
+ *     summary: Create a new company (updates existing if one exists)
+ *     tags: [Company]
  *     requestBody:
+ *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
  *             properties:
- *               endTime:
+ *               name:
  *                 type: string
- *                 format: date-time
- *                 description: Check-out time (optional, defaults to current time)
- *               taskCount:
- *                 type: number
- *                 description: Number of tasks completed (for task-based workers)
+ *                 description: Company name
+ *               address:
+ *                 type: string
+ *                 description: Company address (optional)
+ *               defaultWorkingHours:
+ *                 type: object
+ *                 properties:
+ *                   start:
+ *                     type: string
+ *                     description: Start time in HH:MM format (e.g., 08:00)
+ *                   end:
+ *                     type: string
+ *                     description: End time in HH:MM format (e.g., 17:00)
+ *                 required:
+ *                   - start
+ *                   - end
+ *             required:
+ *               - name
+ *     responses:
+ *       201:
+ *         description: Company created (first time)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Kompaniya muvaffaqiyatli yaratildi"
+ *                 data:
+ *                   $ref: '#/components/schemas/Company'
+ *       200:
+ *         description: Existing company updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Mavjud kompaniya yangilandi"
+ *                 data:
+ *                   $ref: '#/components/schemas/Company'
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Validatsiya xatosi"
+ *                 errors:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   example: ["Kompaniya nomi kiritish majburiy"]
+ *       500:
+ *         description: Server error
+ */
+router.post('/company/create', validateCompany, CompanyController.createOrUpdateCompany);
+
+/**
+ * @swagger
+ * /api/company/delete/{id}:
+ *   delete:
+ *     summary: Delete a company by ID
+ *     tags: [Company]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Company ID
  *     responses:
  *       200:
- *         description: Check-out recorded successfully
+ *         description: Company deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Kompaniya muvaffaqiyatli o'chirildi"
+ *                 data:
+ *                   type: null
+ *       404:
+ *         description: Company not found
+ *       500:
+ *         description: Server error
+ */
+router.delete('/company/delete/:id', CompanyController.deleteCompany);
+
+
+//==========================================================
+// Piece Routes
+
+/**
+ * @swagger
+ * /api/piece:
+ *   post:
+ *     summary: Create a new piece work
+ *     tags: [Pieces]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - price
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Name of the piece work
+ *               price:
+ *                 type: number
+ *                 description: Price of the piece work
+ *               type:
+ *                 type: string
+ *                 default: Dona
+ *                 description: Type of work (fixed as Dona)
+ *     responses:
+ *       201:
+ *         description: Piece work created
  *         content:
  *           application/json:
  *             schema:
@@ -1188,64 +1033,41 @@ router.post('/check-in', Attendance.checkIn);
  *               properties:
  *                 _id:
  *                   type: string
- *                   description: Attendance record ID
- *                 workerId:
+ *                   description: Unique identifier
+ *                 name:
  *                   type: string
- *                   description: Worker ID reference
- *                 date:
- *                   type: string
- *                   format: date-time
- *                   description: Date of attendance
- *                 startTime:
- *                   type: string
- *                   format: date-time
- *                   description: Check-in timestamp
- *                 endTime:
- *                   type: string
- *                   format: date-time
- *                   description: Check-out timestamp
- *                 totalHours:
+ *                   description: Name of the piece work
+ *                 price:
  *                   type: number
- *                   description: Total hours worked
- *                 taskCount:
- *                   type: number
- *                   description: Number of tasks completed (for task-based workers)
- *                 dailySalary:
- *                   type: number
- *                   description: Calculated salary for the day
+ *                   description: Price of the piece work
+ *                 type:
+ *                   type: string
+ *                   default: Dona
+ *                   description: Type of work
  *                 createdAt:
  *                   type: string
  *                   format: date-time
- *                   description: Record creation timestamp
+ *                   description: Creation timestamp
  *                 updatedAt:
  *                   type: string
  *                   format: date-time
  *                   description: Last update timestamp
- *       404:
- *         description: Attendance record not found
  *       400:
  *         description: Validation error
  *       500:
  *         description: Server error
  */
-router.put('/check-out/:id', Attendance.checkOut);
+router.post("/piece", validatePiece, pieceController.createPiece);
 
 /**
  * @swagger
- * /api/report/{workerId}:
+ * /api/piece:
  *   get:
- *     summary: Get attendance report for a worker
- *     tags: [Attendance]
- *     parameters:
- *       - in: path
- *         name: workerId
- *         required: true
- *         schema:
- *           type: string
- *         description: Worker ID to fetch attendance records for
+ *     summary: Fetch all piece works
+ *     tags: [Pieces]
  *     responses:
  *       200:
- *         description: Attendance report retrieved successfully
+ *         description: List of piece works
  *         content:
  *           application/json:
  *             schema:
@@ -1255,47 +1077,732 @@ router.put('/check-out/:id', Attendance.checkOut);
  *                 properties:
  *                   _id:
  *                     type: string
- *                     description: Attendance record ID
- *                   workerId:
+ *                     description: Unique identifier
+ *                   name:
  *                     type: string
- *                     description: Worker ID reference
- *                   date:
- *                     type: string
- *                     format: date-time
- *                     description: Date of attendance
- *                   startTime:
- *                     type: string
- *                     format: date-time
- *                     description: Check-in timestamp
- *                   endTime:
- *                     type: string
- *                     format: date-time
- *                     description: Check-out timestamp
- *                   totalHours:
+ *                     description: Name of the piece work
+ *                   price:
  *                     type: number
- *                     description: Total hours worked
- *                   taskCount:
- *                     type: number
- *                     description: Number of tasks completed (for task-based workers)
- *                   dailySalary:
- *                     type: number
- *                     description: Calculated salary for the day
+ *                     description: Price of the piece work
+ *                   type:
+ *                     type: string
+ *                     default: Dona
+ *                     description: Type of work
  *                   createdAt:
  *                     type: string
  *                     format: date-time
- *                     description: Record creation timestamp
+ *                     description: Creation timestamp
  *                   updatedAt:
  *                     type: string
  *                     format: date-time
  *                     description: Last update timestamp
- *       404:
- *         description: Worker not found or no attendance records
  *       500:
  *         description: Server error
  */
-router.get('/report/:workerId', Attendance.getById);
+router.get("/piece", pieceController.getAllPieces);
 
+/**
+ * @swagger
+ * /api/piece/{id}:
+ *   get:
+ *     summary: Fetch a piece work by ID
+ *     tags: [Pieces]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Piece work ID
+ *     responses:
+ *       200:
+ *         description: Piece work details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                   description: Unique identifier
+ *                 name:
+ *                   type: string
+ *                   description: Name of the piece work
+ *                 price:
+ *                   type: number
+ *                   description: Price of the piece work
+ *                 type:
+ *                   type: string
+ *                   default: Dona
+ *                   description: Type of work
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Creation timestamp
+ *                 updatedAt:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Last update timestamp
+ *       404:
+ *         description: Piece work not found
+ *       500:
+ *         description: Server error
+ */
+router.get("/piece/:id", pieceController.getPieceById);
+
+/**
+ * @swagger
+ * /api/piece/{id}:
+ *   put:
+ *     summary: Update a piece work
+ *     tags: [Pieces]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Piece work ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - price
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Name of the piece work
+ *               price:
+ *                 type: number
+ *                 description: Price of the piece work
+ *               type:
+ *                 type: string
+ *                 default: Dona
+ *                 description: Type of work (fixed as Dona)
+ *     responses:
+ *       200:
+ *         description: Piece work updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                   description: Unique identifier
+ *                 name:
+ *                   type: string
+ *                   description: Name of the piece work
+ *                 price:
+ *                   type: number
+ *                   description: Price of the piece work
+ *                 type:
+ *                   type: string
+ *                   default: Dona
+ *                   description: Type of work
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Creation timestamp
+ *                 updatedAt:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Last update timestamp
+ *       404:
+ *         description: Piece work not found
+ *       400:
+ *         description: Validation error
+ *       500:
+ *         description: Server error
+ */
+router.put("/piece/:id", pieceController.updatePiece);
+
+/**
+ * @swagger
+ * /api/piece/{id}:
+ *   delete:
+ *     summary: Delete a piece work
+ *     tags: [Pieces]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Piece work ID
+ *     responses:
+ *       200:
+ *         description: Piece work deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   description: Confirmation message
+ *       404:
+ *         description: Piece work not found
+ *       500:
+ *         description: Server error
+ */
+router.delete("/piece/:id", pieceController.deletePiece);
+
+//==========================================================
+// Warehouse CRUD routes
+
+/**
+ * @swagger
+ * /api/warehouse:
+ *   post:
+ *     summary: Yangi ombor yaratish
+ *     tags: [Warehouses]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - category
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Ombor nomi (noyob bo'lishi kerak)
+ *               description:
+ *                 type: string
+ *                 description: Ombor tavsifi
+ *               category:
+ *                 type: string
+ *                 enum: ["Tayyor maxsulotlar", "Homashyolar"]
+ *                 description: Ombor kategoriyasi
+ *     responses:
+ *       201:
+ *         description: Ombor muvaffaqiyatli yaratildi
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 state:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 innerData:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                       description: Noyob identifikator
+ *                     name:
+ *                       type: string
+ *                       description: Ombor nomi
+ *                     description:
+ *                       type: string
+ *                       description: Ombor tavsifi
+ *                     category:
+ *                       type: string
+ *                       description: Ombor kategoriyasi
+ *                     materials:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Material'
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *       400:
+ *         description: Validatsiya xatosi
+ *       500:
+ *         description: Server xatosi
+ */
+router.post("/warehouse", validateWarehouse, warehouseController.createWarehouse);
+
+/**
+ * @swagger
+ * /api/warehouse:
+ *   get:
+ *     summary: Barcha omborlarni olish
+ *     tags: [Warehouses]
+ *     responses:
+ *       200:
+ *         description: Omborlar ro'yxati
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 state:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 innerData:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *                       category:
+ *                         type: string
+ *                       materials:
+ *                         type: array
+ *                         items:
+ *                           $ref: '#/components/schemas/Material'
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *       500:
+ *         description: Server xatosi
+ */
+router.get("/warehouse", warehouseController.getAllWarehouses);
+
+/**
+ * @swagger
+ * /api/warehouse/{id}:
+ *   get:
+ *     summary: Omborni ID bo'yicha olish
+ *     tags: [Warehouses]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Ombor IDsi
+ *     responses:
+ *       200:
+ *         description: Ombor ma'lumotlari
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 state:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 innerData:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                     description:
+ *                       type: string
+ *                     category:
+ *                       type: string
+ *                     materials:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Material'
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *       404:
+ *         description: Ombor topilmadi
+ *       500:
+ *         description: Server xatosi
+ */
+router.get("/warehouse/:id", warehouseController.getWarehouseById);
+
+/**
+ * @swagger
+ * /api/warehouse/{id}:
+ *   put:
+ *     summary: Omborni yangilash
+ *     tags: [Warehouses]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Ombor IDsi
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Ombor nomi (noyob bo'lishi kerak)
+ *               description:
+ *                 type: string
+ *                 description: Ombor tavsifi
+ *               category:
+ *                 type: string
+ *                 enum: ["Tayyor maxsulotlar", "Homashyolar"]
+ *                 description: Ombor kategoriyasi
+ *     responses:
+ *       200:
+ *         description: Ombor yangilandi
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/WarehouseResponse'
+ *       404:
+ *         description: Ombor topilmadi
+ *       400:
+ *         description: Validatsiya xatosi
+ *       500:
+ *         description: Server xatosi
+ */
+router.put("/warehouse/:id", validateWarehouse, warehouseController.updateWarehouse);
+
+/**
+ * @swagger
+ * /api/warehouse/{id}:
+ *   delete:
+ *     summary: Omborni o'chirish
+ *     tags: [Warehouses]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Ombor IDsi
+ *     responses:
+ *       200:
+ *         description: Ombor o'chirildi
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 state:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 innerData:
+ *                   type: null
+ *       404:
+ *         description: Ombor topilmadi
+ *       500:
+ *         description: Server xatosi
+ */
+router.delete("/warehouse/:id", warehouseController.deleteWarehouse);
+
+// Material CRUD Routes within Warehouse
+
+/**
+ * @swagger
+ * /api/warehouse/{id}/materials:
+ *   post:
+ *     summary: Omborga material qo'shish
+ *     tags: [Materials]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Ombor IDsi
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Material'
+ *     responses:
+ *       201:
+ *         description: Material qo'shildi
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/WarehouseResponse'
+ *       404:
+ *         description: Ombor topilmadi
+ *       400:
+ *         description: Validatsiya xatosi
+ *       500:
+ *         description: Server xatosi
+ */
+router.post("/warehouse/:id/materials", validateMaterial, warehouseController.addMaterial);
+
+/**
+ * @swagger
+ * /api/warehouse/{id}/materials/{materialId}:
+ *   get:
+ *     summary: Materialni ID bo'yicha olish
+ *     tags: [Materials]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Ombor IDsi
+ *       - in: path
+ *         name: materialId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Material IDsi
+ *     responses:
+ *       200:
+ *         description: Material ma'lumotlari
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 state:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 innerData:
+ *                   $ref: '#/components/schemas/Material'
+ *       404:
+ *         description: Ombor yoki material topilmadi
+ *       500:
+ *         description: Server xatosi
+ */
+router.get("/warehouse/:id/materials/:materialId", warehouseController.getMaterial);
+
+/**
+ * @swagger
+ * /api/warehouse/{id}/materials/{materialId}:
+ *   put:
+ *     summary: Materialni yangilash
+ *     tags: [Materials]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Ombor IDsi
+ *       - in: path
+ *         name: materialId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Material IDsi
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Material'
+ *     responses:
+ *       200:
+ *         description: Material yangilandi
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/WarehouseResponse'
+ *       404:
+ *         description: Ombor yoki material topilmadi
+ *       400:
+ *         description: Validatsiya xatosi
+ *       500:
+ *         description: Server xatosi
+ */
+router.put("/warehouse/:id/materials/:materialId", validateMaterial, warehouseController.updateMaterial);
+
+/**
+ * @swagger
+ * /api/warehouse/{id}/materials/{materialId}:
+ *   delete:
+ *     summary: Materialni o'chirish
+ *     tags: [Materials]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Ombor IDsi
+ *       - in: path
+ *         name: materialId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Material IDsi
+ *     responses:
+ *       200:
+ *         description: Material o'chirildi
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/WarehouseResponse'
+ *       404:
+ *         description: Ombor yoki material topilmadi
+ *       500:
+ *         description: Server xatosi
+ */
+router.delete("/warehouse/:id/materials/:materialId", warehouseController.deleteMaterial);
+
+
+// Additional Swagger components for reusability
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Material:
+ *       type: object
+ *       required:
+ *         - name
+ *         - unit
+ *         - quantity
+ *         - price
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Material nomi
+ *         unit:
+ *           type: string
+ *           enum: ["kg", "piece", "meter", "liter", "roll"]
+ *           description: O'lchov birligi
+ *         quantity:
+ *           type: number
+ *           description: Miqdori
+ *         price:
+ *           type: number
+ *           description: Narxi
+ *         category:
+ *           type: string
+ *           description: Kategoriyasi
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *     WarehouseResponse:
+ *       type: object
+ *       properties:
+ *         state:
+ *           type: boolean
+ *         message:
+ *           type: string
+ *         innerData:
+ *           type: object
+ *           properties:
+ *             _id:
+ *               type: string
+ *             name:
+ *               type: string
+ *             description:
+ *               type: string
+ *             category:
+ *               type: string
+ *               enum: ["Tayyor maxsulotlar", "Homashyolar"]
+ *             materials:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Material'
+ *             createdAt:
+ *               type: string
+ *               format: date-time
+ *             updatedAt:
+ *               type: string
+ *               format: date-time
+ */
+//==========================================================
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Attendance:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *           description: Attendance record ID
+ *         workerId:
+ *           type: string
+ *           description: Worker ID associated with this attendance
+ *         arrivalTime:
+ *           type: string
+ *           format: date-time
+ *           description: Time of arrival
+ *         departureTime:
+ *           type: string
+ *           format: date-time
+ *           description: Time of departure (optional)
+ *         pieceWork:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               taskName:
+ *                 type: string
+ *                 description: Name of the task
+ *               quantity:
+ *                 type: number
+ *                 description: Number of completed tasks
+ *               unitPrice:
+ *                 type: number
+ *                 description: Price per task unit
+ *               totalPrice:
+ *                 type: number
+ *                 description: Total price for the task
+ *           description: List of piecework tasks (optional)
+ *       required:
+ *         - _id
+ *         - workerId
+ *         - arrivalTime
+ * 
+ *     Company:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *           description: Company ID
+ *         name:
+ *           type: string
+ *           description: Company name
+ *         address:
+ *           type: string
+ *           description: Company address (optional)
+ *         defaultWorkingHours:
+ *           type: object
+ *           properties:
+ *             start:
+ *               type: string
+ *               description: Start time in HH:MM format
+ *             end:
+ *               type: string
+ *               description: End time in HH:MM format
+ *           required:
+ *             - start
+ *             - end
+ *       required:
+ *         - _id
+ *         - name
+ */
 module.exports = router;
+
+
+
+
+
+
+
 
 
 

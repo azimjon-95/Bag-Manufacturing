@@ -6,15 +6,19 @@ const WorkerSchema = new mongoose.Schema(
     phone: { type: String, unique: true, required: true },
     workType: {
       type: String,
-      enum: ["daily", "hourly", "task"], // kunbay, soatbay, ishbay
-      required: true,
+      enum: ['hourly', 'daily', 'piecework'],
+      required: true
     },
-    rate: {
-      type: Number,
-      required: true,
-      default: 0, // kunlik, soatlik yoki ish bo'yicha stavka
+    workingHours: {
+      start: { type: String },
+      end: { type: String }
+    },
+    rates: {
+      hourly: { type: Number, default: 10000 },
+      daily: { type: Number, default: 90000 }
     },
     isActive: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now }
   },
   { timestamps: true }
 );

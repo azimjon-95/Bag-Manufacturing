@@ -1,56 +1,119 @@
+// middleware/warehouseValidation.js
 const Ajv = require("ajv");
 const ajv = new Ajv({ allErrors: true });
 require("ajv-errors")(ajv);
 require("ajv-formats")(ajv);
-const response = require("../utils/response");
+const Response = require("../utils/response");
 
-const materialValidation = (req, res, next) => {
-  const schema = {
-    type: "object",
-    properties: {
-      name: { type: "string", minLength: 2, maxLength: 50 },
-      code: { type: "string" },
-      unit: {
-        type: "string",
-        enum: ["kg", "piece", "meter", "liter", "roll"],
+// Warehouse validation schema
+const warehouseSchema = {
+  type: "object",
+  properties: {
+    name: {
+      type: "string",
+      minLength: 1,
+      errorMessage: {
+        type: "Ombor nomi string bo'lishi kerak",
+        minLength: "Ombor nomi bo'sh bo'lmasligi kerak",
       },
-      quantity: { type: "number", minimum: 0 },
-      supplier: { type: "string", minLength: 2, maxLength: 100 },
-      receivedDate: { type: "string", format: "date-time" }, // ISO formatdagi sana,
-      stock: { type: "number", minimum: 0 },
     },
-    required: ["name", "code", "unit", "quantity", "supplier"],
-    additionalProperties: false,
-    errorMessage: {
-      required: {
-        name: "Material nomi kiritish shart",
-        code: "Material kodi kiritish shart",
-        unit: "O‘lchov birligi kiritish shart",
-        quantity: "Miqdor kiritish shart",
-        supplier: "Yetkazib beruvchi kiritish shart",
+    description: {
+      type: "string",
+      errorMessage: {
+        type: "Tavsif string bo'lishi kerak",
       },
-      properties: {
-        name: "Material nomi 2-50 ta belgi oralig‘ida bo‘lishi kerak",
-        code: "Material kodi kiritish kerak",
-        unit: "O‘lchov birligi faqat kg, piece, meter, liter yoki roll bo‘lishi mumkin",
-        quantity: "Miqdor 0 dan kam bo‘lmasligi kerak",
-        supplier:
-          "Yetkazib beruvchi nomi 2-100 ta belgi oralig‘ida bo‘lishi kerak",
-        receivedDate: "Sana noto‘g‘ri formatda, masalan: 2025-03-26T10:00:00Z",
-      },
-      // additionalProperties: "Ruxsat etilmagan maydon kiritildi",
     },
-  };
+    category: {
+      type: "string",
+      enum: ["Tayyor maxsulotlar", "Homashyolar"],
+      errorMessage: {
+        type: "Kategoriya string bo'lishi kerak",
+        enum: "Kategoriya 'Tayyor maxsulotlar' yoki 'Homashyolar' bo'lishi kerak",
+      },
+    },
+    materials: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          name: {
+            type: "string",
+            minLength: 1,
+            errorMessage: {
+              type: "Material nomi string bo'lishi kerak",
+              minLength: "Material nomi bo'sh bo'lmasligi kerak",
+            },
+          },
+          unit: {
+            type: "string",
+            enum: ["kg", "piece", "meter", "liter", "roll"],
+            errorMessage: {
+              type: "O'lchov birligi string bo'lishi kerak",
+              enum: "O'lchov birligi 'kg', 'piece', 'meter', 'liter', yoki 'roll' bo'lishi kerak",
+            },
+          },
+          quantity: {
+            type: "number",
+            minimum: 0,
+            errorMessage: {
+              type: "Miqdor raqam bo'lishi kerak",
+              minimum: "Miqdor 0 dan kam bo'lmasligi kerak",
+            },
+          },
+          price: {
+            type: "number",
+            errorMessage: {
+              type: "Narx raqam bo'lishi kerak",
+            },
+          },
+          category: {
+            type: "string",
+            errorMessage: {
+              type: "Material kategoriyasi string bo'lishi kerak",
+            },
+          },
+        },
+        required: ["name", "unit", "quantity", "price"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["name", "category"],
+  additionalProperties: false,
+};
 
-  const validate = ajv.compile(schema);
-  const result = validate(req.body);
-  if (!result) {
-    let errorField =
-      validate.errors[0].instancePath.replace("/", "") || "Umumiy";
-    let errorMessage = validate.errors[0].message;
-    return response.error(res, `${errorField} xato: ${errorMessage}`);
+// Validation middleware for creating/updating warehouse
+const validateWarehouse = (req, res, next) => {
+  const validate = ajv.compile(warehouseSchema);
+  const valid = validate(req.body);
+
+  if (!valid) {
+    const errors = validate.errors.map(err => ({
+      field: err.instancePath.replace('/', ''),
+      message: err.message,
+    }));
+    return Response.error(res, "Validatsiya xatosi", errors);
   }
   next();
 };
 
-module.exports = materialValidation;
+// Validation middleware for adding material
+const validateMaterial = (req, res, next) => {
+  const materialSchema = warehouseSchema.properties.materials.items;
+  const validate = ajv.compile(materialSchema);
+  const valid = validate(req.body);
+
+  if (!valid) {
+    const errors = validate.errors.map(err => ({
+      field: err.instancePath.replace('/', ''),
+      message: err.message,
+    }));
+    return Response.error(res, "Material validatsiya xatosi", errors);
+  }
+  next();
+};
+
+module.exports = {
+  validateWarehouse,
+  validateMaterial,
+};

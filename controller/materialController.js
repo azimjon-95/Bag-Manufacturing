@@ -1,119 +1,147 @@
-const response = require("../utils/response");
-const materialsDB = require("../model/materialsModel"); // MaterialSchema modeli
+// controllers/warehouseController.js
+const Warehouse = require("../model/materialsModel");
+const Response = require("../utils/response"); // Assuming response.js is in the same directory
 
-class MaterialController {
-  // Barcha materiallarni olish
-  async getMaterials(req, res) {
+class WarehouseController {
+  // Warehouse CRUD operations
+  async createWarehouse(req, res) {
     try {
-      const materials = await materialsDB.find();
-      if (!materials.length)
-        return response.notFound(res, "Materiallar topilmadi");
-      response.success(res, "Barcha materiallar", materials);
-    } catch (err) {
-      response.serverError(res, err.message, err);
+      const { name, category, description } = req.body;
+      const warehouse = new Warehouse({
+        name,
+        description,
+        category,
+        materials: [],
+      });
+      await warehouse.save();
+      return Response.created(res, "Ombor muvaffaqiyatli yaratildi", warehouse);
+    } catch (error) {
+      return Response.error(res, error.message);
     }
   }
 
-  // ID bo‘yicha bitta materialni olish
-  async getMaterialById(req, res) {
+  async getAllWarehouses(req, res) {
     try {
-      const material = await materialsDB.findById(req.params.id);
-      if (!material) return response.notFound(res, "Material topilmadi");
-      response.success(res, "Material topildi", material);
-    } catch (err) {
-      response.serverError(res, err.message, err);
+      const warehouses = await Warehouse.find();
+      return Response.success(res, "Omborlar muvaffaqiyatli olindi", warehouses);
+    } catch (error) {
+      return Response.serverError(res, "Server xatosi");
     }
   }
 
-  // Yangi material qo‘shish
-  async createMaterial(req, res) {
+  async getWarehouseById(req, res) {
     try {
-      let io = req.app.get("socket");
-      let data = req.body;
-
-      // Material kodi takrorlanmasligini tekshirish
-      let exactMaterial = await materialsDB.findOne({ code: data.code });
-      if (exactMaterial)
-        return response.error(res, "Bu kodli material allaqachon mavjud");
-
-      const material = await materialsDB.create(data);
-      if (!material) return response.error(res, "Material qo‘shilmadi");
-
-      io.emit("new_material", material);
-      response.created(res, "Material qo‘shildi", material);
-    } catch (err) {
-      response.serverError(res, err.message, err);
+      const warehouse = await Warehouse.findById(req.params.id);
+      if (!warehouse) {
+        return Response.notFound(res, "Ombor topilmadi");
+      }
+      return Response.success(res, "Ombor muvaffaqiyatli olindi", warehouse);
+    } catch (error) {
+      return Response.serverError(res, "Server xatosi");
     }
   }
 
-  // Materialni o‘chirish
-  async deleteMaterial(req, res) {
+  async updateWarehouse(req, res) {
     try {
-      let io = req.app.get("socket");
-      const material = await materialsDB.findByIdAndDelete(req.params.id);
-      if (!material) return response.error(res, "Material o‘chirilmadi");
-
-      response.success(res, "Material o‘chirildi");
-      io.emit("material_deleted", material);
-    } catch (err) {
-      response.serverError(res, err.message, err);
+      const warehouse = await Warehouse.findByIdAndUpdate(
+        req.params.id,
+        req.body,
+        { new: true, runValidators: true }
+      );
+      if (!warehouse) {
+        return Response.notFound(res, "Ombor topilmadi");
+      }
+      return Response.success(res, "Ombor muvaffaqiyatli yangilandi", warehouse);
+    } catch (error) {
+      return Response.error(res, error.message);
     }
   }
 
-  // Materialni yangilash
-  async updateMaterial(req, res) {
+  async deleteWarehouse(req, res) {
     try {
-      let io = req.app.get("socket");
-      const data = req.body;
+      const warehouse = await Warehouse.findByIdAndDelete(req.params.id);
+      if (!warehouse) {
+        return Response.notFound(res, "Ombor topilmadi");
+      }
+      return Response.success(res, "Ombor muvaffaqiyatli o'chirildi");
+    } catch (error) {
+      return Response.serverError(res, "Server xatosi");
+    }
+  }
 
-      // Agar kod yangilansa, takrorlanmasligini tekshirish
-      if (data.code) {
-        const existingMaterial = await materialsDB.findOne({
-          code: data.code,
-          _id: { $ne: req.params.id }, // Joriy materialni hisobga olmaslik
-        });
-        if (existingMaterial)
-          return response.error(res, "Bu kodli material allaqachon mavjud");
+  // Material CRUD operations within Warehouse
+  async addMaterial(req, res) {
+    try {
+      const warehouse = await Warehouse.findById(req.params.id);
+      if (!warehouse) {
+        return Response.notFound(res, "Ombor topilmadi");
       }
 
-      const updatedMaterial = await materialsDB.findByIdAndUpdate(
-        req.params.id,
-        data,
-        { new: true }
-      );
-
-      if (!updatedMaterial)
-        return response.error(res, "Material yangilashda xatolik");
-
-      response.success(res, "Material yangilandi", updatedMaterial);
-      io.emit("material_updated", updatedMaterial);
-    } catch (err) {
-      response.serverError(res, err.message, err);
+      warehouse.materials.push(req.body);
+      await warehouse.save();
+      return Response.created(res, "Material muvaffaqiyatli qo'shildi", warehouse);
+    } catch (error) {
+      return Response.error(res, error.message);
     }
   }
 
-  // Material zaxirasini yangilash (masalan, ishlatilganda yoki qo‘shilganda)
-  async updateStock(req, res) {
+  async updateMaterial(req, res) {
     try {
-      let io = req.app.get("socket");
-      const { quantity } = req.body; // Yangi miqdor yoki o‘zgarish
+      const warehouse = await Warehouse.findById(req.params.id);
+      if (!warehouse) {
+        return Response.notFound(res, "Ombor topilmadi");
+      }
 
-      const material = await materialsDB.findById(req.params.id);
-      if (!material) return response.error(res, "Material topilmadi");
+      const material = warehouse.materials.id(req.params.materialId);
+      if (!material) {
+        return Response.notFound(res, "Material topilmadi");
+      }
 
-      // Zaxirani yangilash
-      material.stock = quantity >= 0 ? quantity : material.stock + quantity;
-      if (material.stock < 0)
-        return response.error(res, "Zaxira manfiy bo‘lishi mumkin emas");
+      material.set(req.body);
+      await warehouse.save();
+      return Response.success(res, "Material muvaffaqiyatli yangilandi", warehouse);
+    } catch (error) {
+      return Response.error(res, error.message);
+    }
+  }
 
-      await material.save();
+  async deleteMaterial(req, res) {
+    try {
+      const warehouse = await Warehouse.findById(req.params.id);
+      if (!warehouse) {
+        return Response.notFound(res, "Ombor topilmadi");
+      }
 
-      response.success(res, "Material zaxirasi yangilandi", material);
-      io.emit("material_stock_updated", material);
-    } catch (err) {
-      response.serverError(res, err.message, err);
+      const material = warehouse.materials.id(req.params.materialId);
+      if (!material) {
+        return Response.notFound(res, "Material topilmadi");
+      }
+
+      material.remove();
+      await warehouse.save();
+      return Response.success(res, "Material muvaffaqiyatli o'chirildi", warehouse);
+    } catch (error) {
+      return Response.error(res, error.message);
+    }
+  }
+
+  async getMaterial(req, res) {
+    try {
+      const warehouse = await Warehouse.findById(req.params.id);
+      if (!warehouse) {
+        return Response.notFound(res, "Ombor topilmadi");
+      }
+
+      const material = warehouse.materials.id(req.params.materialId);
+      if (!material) {
+        return Response.notFound(res, "Material topilmadi");
+      }
+
+      return Response.success(res, "Material muvaffaqiyatli olindi", material);
+    } catch (error) {
+      return Response.serverError(res, "Server xatosi");
     }
   }
 }
 
-module.exports = new MaterialController();
+module.exports = new WarehouseController();

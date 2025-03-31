@@ -5,6 +5,7 @@ const cors = require("cors");
 const PORT = process.env.PORT || 5000;
 const notfound = require("./middleware/notfound.middleware");
 const router = require("./routes/router");
+const authMiddleware = require("./middleware/AuthMiddleware");
 const { createServer } = require("node:http");
 const soket = require("./socket");
 const swaggerUi = require("swagger-ui-express");
@@ -51,14 +52,13 @@ const swaggerOptions = {
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
-console.log("Swagger Spec Generated:", JSON.stringify(swaggerSpec, null, 2)); // Swagger specni tekshirish
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, { explorer: true }));
 
 // Socket.IO sozlamalari
 app.set("socket", io);
 soket.connect(io);
 
-app.use("/api", /* authMiddleware, */ router); // Routerlarni ulash
+app.use("/api", authMiddleware, router); // Routerlarni ulash
 app.get("/", (req, res) => res.send("Salom dunyo")); // Bosh sahifa
 app.use(notfound); // 404 middleware
 
