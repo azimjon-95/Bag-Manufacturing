@@ -67,9 +67,9 @@ router.post("/admin/login", adminController.login);
  * /api/admin/all:
  *   get:
  *     summary: Fetch all admins
- *     tags: [Admins]
+ *     description: Retrieve a list of all admin users from the system.
  *     security:
- *       - ApiKeyAuth: []
+ *       - ApiKeyAuth: [] # Requires the auth cookie with Bearer token
  *     responses:
  *       200:
  *         description: List of admins
@@ -82,24 +82,30 @@ router.post("/admin/login", adminController.login);
  *                 properties:
  *                   firstName:
  *                     type: string
+ *                     example: "John"
  *                   lastName:
  *                     type: string
+ *                     example: "Doe"
  *                   login:
  *                     type: string
+ *                     example: "admin123"
  *                   password:
  *                     type: string
+ *                     example: "hashedpassword"
  *                   role:
  *                     type: string
- *                     enum: ["Owner", "Manager", "Warehouseman"]
- *                     default: Manager
+ *                     enum: ["Manager", "Admin", "SuperAdmin"]
+ *                     example: "Manager"
  *                   createdAt:
  *                     type: string
  *                     format: date-time
+ *                     example: "2025-04-01T08:33:59.040Z"
  *                   updatedAt:
  *                     type: string
  *                     format: date-time
+ *                     example: "2025-04-01T08:33:59.040Z"
  *       401:
- *         description: Unauthorized
+ *         description: Unauthorized - Invalid or missing auth token
  *       500:
  *         description: Server error
  */
@@ -761,7 +767,7 @@ router.delete("/workers/delete/:id", workerController.deleteWorker);
  *       500:
  *         description: Server error
  */
-router.post('/scan', validateAttendanceScan, AttendanceController.handleQRScan);
+router.post('/attendance/scan', validateAttendanceScan, AttendanceController.handleQRScan);
 
 /**
  * @swagger
@@ -824,7 +830,7 @@ router.post('/scan', validateAttendanceScan, AttendanceController.handleQRScan);
  *       500:
  *         description: Server error
  */
-router.post('/piecework', validatePieceWork, AttendanceController.addPieceWork);
+router.post('/attendance/piecework', validatePieceWork, AttendanceController.addPieceWork);
 
 /**
  * @swagger

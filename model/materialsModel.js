@@ -25,8 +25,20 @@ const MaterialSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  code: {
+    type: String,
+    required: true,
+    unique: true, // Har bir materialning kodi takrorlanmas bo‘lishi uchun
+  },
+  supplier: {
+    type: String,
+    required: true, // Kimdan kelgani
+  },
+  receivedDate: {
+    type: Date,
+    default: Date.now, // Material qachon kelgani
+  },
 }, { timestamps: true });
-
 
 const WarehouseSchema = new mongoose.Schema({
   name: {

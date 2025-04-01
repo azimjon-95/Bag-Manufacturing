@@ -1,39 +1,44 @@
 const Attendance = require('../model/attendanceModel');
 const Worker = require('../model/workersModel');
 const Company = require('../model/Company');
+const Response = require('../utils/response'); // Assuming the response class is in a file named 'response.js'
 
 class AttendanceController {
-    // Ish soatlari va maoshni hisoblash uchun yordamchi funksiya
+    // Helper function to calculate wage and hours
     static async calculateWage(worker, attendance, fullDayHours, expectedStartTime, expectedEndTime) {
-        const currentTime = attendance.startTime;
+        const startTime = attendance.startTime;
 
-        if (currentTime > expectedStartTime) {
-            const hoursLate = (currentTime - expectedStartTime) / (1000 * 60 * 60);
-            if (worker.workType === 'daily') {
+        if (worker.workType === 'daily') {
+            attendance.dailySalary = worker.rates.daily;
+            if (startTime > expectedStartTime) {
+                const hoursLate = (startTime - expectedStartTime) / (1000 * 60 * 60);
                 const deduction = (hoursLate / fullDayHours) * worker.rates.daily;
                 attendance.dailySalary = Math.max(0, worker.rates.daily - deduction);
-            } else if (worker.workType === 'hourly') {
-                const remainingHours = Math.max(0, fullDayHours - hoursLate);
-                attendance.hourlyWage = remainingHours * worker.rates.hourly;
             }
-        } else {
-            if (worker.workType === 'daily') {
-                attendance.dailySalary = worker.rates.daily;
-            } else if (worker.workType === 'hourly') {
-                attendance.hourlyWage = fullDayHours * worker.rates.hourly;
-            }
+        } else if (worker.workType === 'hourly') {
+            const hoursLate = startTime > expectedStartTime
+                ? (startTime - expectedStartTime) / (1000 * 60 * 60)
+                : 0;
+            const remainingHours = Math.max(0, fullDayHours - hoursLate);
+            attendance.hourlyWage = remainingHours * worker.rates.hourly;
         }
 
         return attendance;
     }
 
-    // QR skan qilish
+    // QR scan handler
     static async handleQRScan(req, res) {
         const { workerId } = req.body;
 
+        if (!workerId) {
+            return Response.error(res, "workerId kiritilishi shart");
+        }
+
         try {
             const worker = await Worker.findById(workerId);
-            if (!worker) return res.status(404).json({ error: "Ishchi topilmadi" });
+            if (!worker) {
+                return Response.notFound(res, "Ishchi topilmadi");
+            }
 
             const today = new Date().setHours(0, 0, 0, 0);
             let attendance = await Attendance.findOne({
@@ -41,15 +46,20 @@ class AttendanceController {
                 date: { $gte: today }
             });
 
-            const company = await Company.find();
-            const { start: startTimeStr, end: endTimeStr } = company.defaultWorkingHours;
-            const [startHour, startMinute] = startTimeStr.split(':').map(Number);
-            const [endHour, endMinute] = endTimeStr.split(':').map(Number);
+            // Fetch default working hours from Company model
+            const company = await Company.findOne();
+            if (!company || !company.defaultWorkingHours) {
+                return Response.serverError(res, "Kompaniya sozlamalari topilmadi");
+            }
 
-            const expectedStartTime = new Date();
+            const { start, end } = company.defaultWorkingHours;
+            const [startHour, startMinute] = start.split(':').map(Number);
+            const [endHour, endMinute] = end.split(':').map(Number);
+
+            const expectedStartTime = new Date(today);
             expectedStartTime.setHours(startHour, startMinute, 0, 0);
 
-            const expectedEndTime = new Date();
+            const expectedEndTime = new Date(today);
             expectedEndTime.setHours(endHour, endMinute, 0, 0);
 
             const fullDayHours = (expectedEndTime - expectedStartTime) / (1000 * 60 * 60);
@@ -59,19 +69,25 @@ class AttendanceController {
                     workerId: worker._id,
                     workType: worker.workType,
                     startTime: new Date(),
-                    dailySalary: worker.rates.daily,
-                    hourlyWage: worker.rates.hourly
+                    date: new Date(),
+                    dailySalary: 0,
+                    hourlyWage: 0,
+                    status: 'arrived'
                 });
 
-                await this.calculateWage(worker, attendance, fullDayHours, expectedStartTime, expectedEndTime);
+                // Use explicit class reference instead of 'this'
+                await AttendanceController.calculateWage(worker, attendance, fullDayHours, expectedStartTime, expectedEndTime);
                 await attendance.save();
-                return res.status(201).json({ message: "Ishga kelish qayd etildi", attendance });
-            } else if (attendance.status === 'arrived') {
+                return Response.created(res, "Ishga kelish qayd etildi", attendance);
+            }
+
+            if (attendance.status === 'arrived') {
                 attendance.endTime = new Date();
                 attendance.status = 'left';
 
                 if (worker.workType === 'hourly') {
-                    attendance.hourlyWage = attendance.totalHours * worker.rates.hourly;
+                    const hoursWorked = (attendance.endTime - attendance.startTime) / (1000 * 60 * 60);
+                    attendance.hourlyWage = hoursWorked * worker.rates.hourly;
                 } else if (worker.workType === 'daily' && attendance.endTime < expectedEndTime) {
                     const hoursWorked = (attendance.endTime - attendance.startTime) / (1000 * 60 * 60);
                     const deduction = ((fullDayHours - hoursWorked) / fullDayHours) * worker.rates.daily;
@@ -79,22 +95,27 @@ class AttendanceController {
                 }
 
                 await attendance.save();
-                return res.status(200).json({ message: "Ishdan ketish qayd etildi", attendance });
-            } else {
-                return res.status(400).json({ message: "Bugungi ish allaqachon yakunlangan" });
+                return Response.success(res, "Ishdan ketish qayd etildi", attendance);
             }
+
+            return Response.warning(res, "Bugungi ish allaqachon yakunlangan");
         } catch (error) {
-            return res.status(500).json({ error: error.message });
+            return Response.serverError(res, "Server xatosi: " + error.message);
         }
     }
 
-    // Abyom ish qo'shish
+    // Add piecework
     static async addPieceWork(req, res) {
         const { attendanceId, pieceWorkData } = req.body;
+
+        if (!attendanceId || !pieceWorkData) {
+            return Response.error(res, "attendanceId va pieceWorkData kiritilishi shart");
+        }
+
         try {
             const attendance = await Attendance.findById(attendanceId);
             if (!attendance || attendance.workType !== 'piecework') {
-                return res.status(404).json({ error: "Abyom ishchi topilmadi" });
+                return Response.notFound(res, "Abyom ishchi topilmadi");
             }
 
             attendance.pieceWorks.push(pieceWorkData);
@@ -105,25 +126,27 @@ class AttendanceController {
             attendance.status = 'completed';
 
             await attendance.save();
-            return res.status(200).json({ message: "Ish qo'shildi", attendance });
+            return Response.success(res, "Ish qo'shildi", attendance);
         } catch (error) {
-            return res.status(500).json({ error: error.message });
+            return Response.serverError(res, "Server xatosi: " + error.message);
         }
     }
 
-    // Attendance ni _id bo'yicha olish
+    // Get attendance by ID
     static async getAttendanceById(req, res) {
         const { id } = req.params;
+
         try {
             const attendance = await Attendance.findById(id).populate('workerId');
             if (!attendance) {
-                return res.status(404).json({ error: "Attendance topilmadi" });
+                return Response.notFound(res, "Attendance topilmadi");
             }
-            return res.status(200).json({ message: "Attendance topildi", attendance });
+            return Response.success(res, "Attendance topildi", attendance);
         } catch (error) {
-            return res.status(500).json({ error: error.message });
+            return Response.serverError(res, "Server xatosi: " + error.message);
         }
     }
 }
 
 module.exports = AttendanceController;
+
