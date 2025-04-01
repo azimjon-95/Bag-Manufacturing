@@ -47,6 +47,20 @@ const swaggerOptions = {
       { url: "https://bag-manufacturing.up.railway.app" },
       { url: "http://localhost:5000" },
     ],
+    components: {
+      securitySchemes: {
+        ApiKeyAuth: {
+          type: "apiKey",
+          in: "cookie",
+          name: "auth",
+        },
+      },
+    },
+    security: [
+      {
+        ApiKeyAuth: [], // This will apply to all endpoints by default
+      },
+    ],
   },
   apis: ["./routes/router.js"],
 };
@@ -64,3 +78,5 @@ app.use(notfound); // 404 middleware
 
 // Serverni ishga tushirish
 server.listen(PORT, () => console.log(`http://localhost:${PORT}`));
+
+

@@ -12,14 +12,328 @@ const validatePiece = require('../validation/pieceValidation');
 const pieceController = require('../controller/pieceController');
 const warehouseController = require("../controller/materialController");
 
+
+//==========================================================
+// Admin Routes
+
+/**
+ * @swagger
+ * /api/admin/login:
+ *   post:
+ *     summary: Admin login
+ *     tags: [Admins]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               login:
+ *                 type: string
+ *                 description: Admin login
+ *               password:
+ *                 type: string
+ *                 description: Admin password
+ *             required:
+ *               - login
+ *               - password
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *                   description: Authentication token
+ *         headers:
+ *           Set-Cookie:
+ *             schema:
+ *               type: string
+ *               example: auth=token_value; HttpOnly; Path=/
+ *       401:
+ *         description: Invalid credentials
+ *       500:
+ *         description: Server error
+ *     security: [] # This endpoint doesn't require authentication
+ */
+router.post("/admin/login", adminController.login);
+
+/**
+ * @swagger
+ * /api/admin/all:
+ *   get:
+ *     summary: Fetch all admins
+ *     tags: [Admins]
+ *     security:
+ *       - ApiKeyAuth: []
+ *     responses:
+ *       200:
+ *         description: List of admins
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   firstName:
+ *                     type: string
+ *                   lastName:
+ *                     type: string
+ *                   login:
+ *                     type: string
+ *                   password:
+ *                     type: string
+ *                   role:
+ *                     type: string
+ *                     enum: ["Owner", "Manager", "Warehouseman"]
+ *                     default: Manager
+ *                   createdAt:
+ *                     type: string
+ *                     format: date-time
+ *                   updatedAt:
+ *                     type: string
+ *                     format: date-time
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.get("/admin/all", adminController.getAdmins);
+
+/**
+ * @swagger
+ * /api/admin/{id}:
+ *   get:
+ *     summary: Fetch an admin by ID
+ *     tags: [Admins]
+ *     security:
+ *       - ApiKeyAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Admin ID
+ *     responses:
+ *       200:
+ *         description: Admin details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 firstName:
+ *                   type: string
+ *                 lastName:
+ *                   type: string
+ *                 login:
+ *                   type: string
+ *                 password:
+ *                   type: string
+ *                 role:
+ *                   type: string
+ *                   enum: ["Owner", "Manager", "Warehouseman"]
+ *                   default: Manager
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *                 updatedAt:
+ *                   type: string
+ *                   format: date-time
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Admin not found
+ *       500:
+ *         description: Server error
+ */
+router.get("/admin/:id", adminController.getAdminById);
+
+/**
+ * @swagger
+ * /api/admin/create:
+ *   post:
+ *     summary: Create a new admin
+ *     tags: [Admins]
+ *     security:
+ *       - ApiKeyAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - firstName
+ *               - lastName
+ *               - login
+ *               - password
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               login:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: ["Owner", "Manager", "Warehouseman"]
+ *                 default: Manager
+ *     responses:
+ *       201:
+ *         description: Admin created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 firstName:
+ *                   type: string
+ *                 lastName:
+ *                   type: string
+ *                 login:
+ *                   type: string
+ *                 password:
+ *                   type: string
+ *                 role:
+ *                   type: string
+ *                   enum: ["Owner", "Manager", "Warehouseman"]
+ *                   default: Manager
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *                 updatedAt:
+ *                   type: string
+ *                   format: date-time
+ *       401:
+ *         description: Unauthorized
+ *       400:
+ *         description: Validation error
+ *       500:
+ *         description: Server error
+ */
+router.post("/admin/create", adminValidation, adminController.createAdmin);
+
+/**
+ * @swagger
+ * /api/admin/update/{id}:
+ *   put:
+ *     summary: Update an admin
+ *     tags: [Admins]
+ *     security:
+ *       - ApiKeyAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Admin ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - firstName
+ *               - lastName
+ *               - login
+ *               - password
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               login:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: ["Owner", "Manager", "Warehouseman"]
+ *                 default: Manager
+ *     responses:
+ *       200:
+ *         description: Admin updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 firstName:
+ *                   type: string
+ *                 lastName:
+ *                   type: string
+ *                 login:
+ *                   type: string
+ *                 password:
+ *                   type: string
+ *                 role:
+ *                   type: string
+ *                   enum: ["Owner", "Manager", "Warehouseman"]
+ *                   default: Manager
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *                 updatedAt:
+ *                   type: string
+ *                   format: date-time
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Admin not found
+ *       500:
+ *         description: Server error
+ */
+router.put("/admin/update/:id", adminValidation, adminController.updateAdmin);
+
+/**
+ * @swagger
+ * /api/admin/delete/{id}:
+ *   delete:
+ *     summary: Delete an admin
+ *     tags: [Admins]
+ *     security:
+ *       - ApiKeyAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Admin ID
+ *     responses:
+ *       200:
+ *         description: Admin deleted
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Admin not found
+ *       500:
+ *         description: Server error
+ */
+router.delete("/admin/delete/:id", adminController.deleteAdmin);
+
 //==========================================================
 // Workers Routes
+
 /**
  * @swagger
  * /api/workers/all:
  *   get:
  *     summary: Fetch all workers
  *     tags: [Workers]
+ *     security:
+ *       - ApiKeyAuth: []
  *     responses:
  *       200:
  *         description: List of workers
@@ -57,6 +371,8 @@ const warehouseController = require("../controller/materialController");
  *                     type: string
  *                     format: date-time
  *                     description: Last update timestamp
+ *       401:
+ *         description: Unauthorized
  *       500:
  *         description: Server error
  */
@@ -68,6 +384,8 @@ router.get("/workers/all", workerController.getWorkers);
  *   get:
  *     summary: Fetch a worker by ID
  *     tags: [Workers]
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -110,6 +428,8 @@ router.get("/workers/all", workerController.getWorkers);
  *                   type: string
  *                   format: date-time
  *                   description: Last update timestamp
+ *       401:
+ *         description: Unauthorized
  *       404:
  *         description: Worker not found
  *       500:
@@ -123,6 +443,8 @@ router.get("/workers/:id", workerController.getWorkerById);
  *   post:
  *     summary: Create a new worker
  *     tags: [Workers]
+ *     security:
+ *       - ApiKeyAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -187,6 +509,8 @@ router.get("/workers/:id", workerController.getWorkerById);
  *                   type: string
  *                   format: date-time
  *                   description: Last update timestamp
+ *       401:
+ *         description: Unauthorized
  *       400:
  *         description: Validation error
  *       500:
@@ -200,6 +524,8 @@ router.post("/workers/create", workerValidation, workerController.createWorker);
  *   put:
  *     summary: Update a worker
  *     tags: [Workers]
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -271,6 +597,8 @@ router.post("/workers/create", workerValidation, workerController.createWorker);
  *                   type: string
  *                   format: date-time
  *                   description: Last update timestamp
+ *       401:
+ *         description: Unauthorized
  *       404:
  *         description: Worker not found
  *       500:
@@ -284,6 +612,8 @@ router.put("/workers/update/:id", workerController.updateWorker);
  *   put:
  *     summary: Update worker status
  *     tags: [Workers]
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -338,6 +668,8 @@ router.put("/workers/update/:id", workerController.updateWorker);
  *                   type: string
  *                   format: date-time
  *                   description: Last update timestamp
+ *       401:
+ *         description: Unauthorized
  *       404:
  *         description: Worker not found
  *       500:
@@ -351,6 +683,8 @@ router.put("/workers/status/:id", workerController.changeStatus);
  *   delete:
  *     summary: Delete a worker
  *     tags: [Workers]
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -361,334 +695,14 @@ router.put("/workers/status/:id", workerController.changeStatus);
  *     responses:
  *       200:
  *         description: Worker deleted
+ *       401:
+ *         description: Unauthorized
  *       404:
  *         description: Worker not found
  *       500:
  *         description: Server error
  */
 router.delete("/workers/delete/:id", workerController.deleteWorker);
-
-//==========================================================
-// Admin Routes
-/**
- * @swagger
- * /api/admin/all:
- *   get:
- *     summary: Fetch all admins
- *     tags: [Admins]
- *     responses:
- *       200:
- *         description: List of admins
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   firstName:
- *                     type: string
- *                     description: Admin’s first name
- *                   lastName:
- *                     type: string
- *                     description: Admin’s last name
- *                   login:
- *                     type: string
- *                     description: Unique login
- *                   password:
- *                     type: string
- *                     description: Password (min 6 characters)
- *                   role:
- *                     type: string
- *                     enum: ["Owner", "Manager", "Warehouseman"]
- *                     default: Manager
- *                     description: Admin role
- *                   createdAt:
- *                     type: string
- *                     format: date-time
- *                     description: Creation timestamp
- *                   updatedAt:
- *                     type: string
- *                     format: date-time
- *                     description: Last update timestamp
- *       500:
- *         description: Server error
- */
-router.get("/admin/all", adminController.getAdmins);
-
-/**
- * @swagger
- * /api/admin/{id}:
- *   get:
- *     summary: Fetch an admin by ID
- *     tags: [Admins]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: Admin ID
- *     responses:
- *       200:
- *         description: Admin details
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 firstName:
- *                   type: string
- *                   description: Admin’s first name
- *                 lastName:
- *                   type: string
- *                   description: Admin’s last name
- *                 login:
- *                   type: string
- *                   description: Unique login
- *                 password:
- *                   type: string
- *                   description: Password (min 6 characters)
- *                 role:
- *                   type: string
- *                   enum: ["Owner", "Manager", "Warehouseman"]
- *                   default: Manager
- *                   description: Admin role
- *                 createdAt:
- *                   type: string
- *                   format: date-time
- *                   description: Creation timestamp
- *                 updatedAt:
- *                   type: string
- *                   format: date-time
- *                   description: Last update timestamp
- *       404:
- *         description: Admin not found
- *       500:
- *         description: Server error
- */
-router.get("/admin/:id", adminController.getAdminById);
-
-/**
- * @swagger
- * /api/admin/create:
- *   post:
- *     summary: Create a new admin
- *     tags: [Admins]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - firstName
- *               - lastName
- *               - login
- *               - password
- *             properties:
- *               firstName:
- *                 type: string
- *                 description: Admin’s first name
- *               lastName:
- *                 type: string
- *                 description: Admin’s last name
- *               login:
- *                 type: string
- *                 description: Unique login
- *               password:
- *                 type: string
- *                 description: Password (min 6 characters)
- *               role:
- *                 type: string
- *                 enum: ["Owner", "Manager", "Warehouseman"]
- *                 default: Manager
- *                 description: Admin role
- *     responses:
- *       201:
- *         description: Admin created
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 firstName:
- *                   type: string
- *                   description: Admin’s first name
- *                 lastName:
- *                   type: string
- *                   description: Admin’s last name
- *                 login:
- *                   type: string
- *                   description: Unique login
- *                 password:
- *                   type: string
- *                   description: Password (min 6 characters)
- *                 role:
- *                   type: string
- *                   enum: ["Owner", "Manager", "Warehouseman"]
- *                   default: Manager
- *                   description: Admin role
- *                 createdAt:
- *                   type: string
- *                   format: date-time
- *                   description: Creation timestamp
- *                 updatedAt:
- *                   type: string
- *                   format: date-time
- *                   description: Last update timestamp
- *       400:
- *         description: Validation error
- *       500:
- *         description: Server error
- */
-router.post("/admin/create", adminValidation, adminController.createAdmin);
-
-/**
- * @swagger
- * /api/admin/update/{id}:
- *   put:
- *     summary: Update an admin
- *     tags: [Admins]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: Admin ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - firstName
- *               - lastName
- *               - login
- *               - password
- *             properties:
- *               firstName:
- *                 type: string
- *                 description: Admin’s first name
- *               lastName:
- *                 type: string
- *                 description: Admin’s last name
- *               login:
- *                 type: string
- *                 description: Unique login
- *               password:
- *                 type: string
- *                 description: Password (min 6 characters)
- *               role:
- *                 type: string
- *                 enum: ["Owner", "Manager", "Warehouseman"]
- *                 default: Manager
- *                 description: Admin role
- *     responses:
- *       200:
- *         description: Admin updated
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 firstName:
- *                   type: string
- *                   description: Admin’s first name
- *                 lastName:
- *                   type: string
- *                   description: Admin’s last name
- *                 login:
- *                   type: string
- *                   description: Unique login
- *                 password:
- *                   type: string
- *                   description: Password (min 6 characters)
- *                 role:
- *                   type: string
- *                   enum: ["Owner", "Manager", "Warehouseman"]
- *                   default: Manager
- *                   description: Admin role
- *                 createdAt:
- *                   type: string
- *                   format: date-time
- *                   description: Creation timestamp
- *                 updatedAt:
- *                   type: string
- *                   format: date-time
- *                   description: Last update timestamp
- *       404:
- *         description: Admin not found
- *       500:
- *         description: Server error
- */
-router.put("/admin/update/:id", adminValidation, adminController.updateAdmin);
-
-/**
- * @swagger
- * /api/admin/delete/{id}:
- *   delete:
- *     summary: Delete an admin
- *     tags: [Admins]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: Admin ID
- *     responses:
- *       200:
- *         description: Admin deleted
- *       404:
- *         description: Admin not found
- *       500:
- *         description: Server error
- */
-router.delete("/admin/delete/:id", adminController.deleteAdmin);
-
-/**
- * @swagger
- * /api/admin/login:
- *   post:
- *     summary: Admin login
- *     tags: [Admins]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               login:
- *                 type: string
- *                 description: Admin login
- *               password:
- *                 type: string
- *                 description: Admin password
- *             required:
- *               - login
- *               - password
- *     responses:
- *       200:
- *         description: Login successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 token:
- *                   type: string
- *                   description: Authentication token
- *       401:
- *         description: Invalid credentials
- *       500:
- *         description: Server error
- */
-router.post("/admin/login", adminController.login);
-
 
 //==========================================================
 // Attendance Routes
@@ -699,6 +713,8 @@ router.post("/admin/login", adminController.login);
  *   post:
  *     summary: Handle QR scan for attendance
  *     tags: [Attendance]
+ *     security:
+ *       - ApiKeyAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -738,6 +754,8 @@ router.post("/admin/login", adminController.login);
  *                   $ref: '#/components/schemas/Attendance'
  *       400:
  *         description: Attendance already completed for today
+ *       401:
+ *         description: Unauthorized
  *       404:
  *         description: Worker not found
  *       500:
@@ -751,6 +769,8 @@ router.post('/scan', validateAttendanceScan, AttendanceController.handleQRScan);
  *   post:
  *     summary: Add piecework for an attendance record
  *     tags: [Attendance]
+ *     security:
+ *       - ApiKeyAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -797,6 +817,8 @@ router.post('/scan', validateAttendanceScan, AttendanceController.handleQRScan);
  *                   example: "Ish qo'shildi"
  *                 attendance:
  *                   $ref: '#/components/schemas/Attendance'
+ *       401:
+ *         description: Unauthorized
  *       404:
  *         description: Attendance not found or not piecework type
  *       500:
@@ -810,6 +832,8 @@ router.post('/piecework', validatePieceWork, AttendanceController.addPieceWork);
  *   get:
  *     summary: Fetch an attendance record by ID
  *     tags: [Attendance]
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -830,13 +854,14 @@ router.post('/piecework', validatePieceWork, AttendanceController.addPieceWork);
  *                   example: "Attendance topildi"
  *                 attendance:
  *                   $ref: '#/components/schemas/Attendance'
+ *       401:
+ *         description: Unauthorized
  *       404:
  *         description: Attendance not found
  *       500:
  *         description: Server error
  */
 router.get('/attendance/:id', AttendanceController.getAttendanceById);
-
 
 //==========================================================
 // Company Routes
@@ -847,6 +872,8 @@ router.get('/attendance/:id', AttendanceController.getAttendanceById);
  *   get:
  *     summary: Fetch all companies (only one allowed)
  *     tags: [Company]
+ *     security:
+ *       - ApiKeyAuth: []
  *     responses:
  *       200:
  *         description: List of companies
@@ -865,6 +892,8 @@ router.get('/attendance/:id', AttendanceController.getAttendanceById);
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/Company'
+ *       401:
+ *         description: Unauthorized
  *       500:
  *         description: Server error
  */
@@ -876,6 +905,8 @@ router.get('/company/all', CompanyController.getCompanies);
  *   post:
  *     summary: Create a new company (updates existing if one exists)
  *     tags: [Company]
+ *     security:
+ *       - ApiKeyAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -952,6 +983,8 @@ router.get('/company/all', CompanyController.getCompanies);
  *                   items:
  *                     type: string
  *                   example: ["Kompaniya nomi kiritish majburiy"]
+ *       401:
+ *         description: Unauthorized
  *       500:
  *         description: Server error
  */
@@ -963,6 +996,8 @@ router.post('/company/create', validateCompany, CompanyController.createOrUpdate
  *   delete:
  *     summary: Delete a company by ID
  *     tags: [Company]
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -986,6 +1021,8 @@ router.post('/company/create', validateCompany, CompanyController.createOrUpdate
  *                   example: "Kompaniya muvaffaqiyatli o'chirildi"
  *                 data:
  *                   type: null
+ *       401:
+ *         description: Unauthorized
  *       404:
  *         description: Company not found
  *       500:
@@ -1003,6 +1040,8 @@ router.delete('/company/delete/:id', CompanyController.deleteCompany);
  *   post:
  *     summary: Create a new piece work
  *     tags: [Pieces]
+ *     security:
+ *       - ApiKeyAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -1054,6 +1093,8 @@ router.delete('/company/delete/:id', CompanyController.deleteCompany);
  *                   description: Last update timestamp
  *       400:
  *         description: Validation error
+ *       401:
+ *         description: Unauthorized
  *       500:
  *         description: Server error
  */
@@ -1065,6 +1106,8 @@ router.post("/piece", validatePiece, pieceController.createPiece);
  *   get:
  *     summary: Fetch all piece works
  *     tags: [Pieces]
+ *     security:
+ *       - ApiKeyAuth: []
  *     responses:
  *       200:
  *         description: List of piece works
@@ -1096,6 +1139,8 @@ router.post("/piece", validatePiece, pieceController.createPiece);
  *                     type: string
  *                     format: date-time
  *                     description: Last update timestamp
+ *       401:
+ *         description: Unauthorized
  *       500:
  *         description: Server error
  */
@@ -1107,6 +1152,8 @@ router.get("/piece", pieceController.getAllPieces);
  *   get:
  *     summary: Fetch a piece work by ID
  *     tags: [Pieces]
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -1143,6 +1190,8 @@ router.get("/piece", pieceController.getAllPieces);
  *                   type: string
  *                   format: date-time
  *                   description: Last update timestamp
+ *       401:
+ *         description: Unauthorized
  *       404:
  *         description: Piece work not found
  *       500:
@@ -1156,6 +1205,8 @@ router.get("/piece/:id", pieceController.getPieceById);
  *   put:
  *     summary: Update a piece work
  *     tags: [Pieces]
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -1212,10 +1263,12 @@ router.get("/piece/:id", pieceController.getPieceById);
  *                   type: string
  *                   format: date-time
  *                   description: Last update timestamp
- *       404:
- *         description: Piece work not found
  *       400:
  *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Piece work not found
  *       500:
  *         description: Server error
  */
@@ -1227,6 +1280,8 @@ router.put("/piece/:id", pieceController.updatePiece);
  *   delete:
  *     summary: Delete a piece work
  *     tags: [Pieces]
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -1245,12 +1300,15 @@ router.put("/piece/:id", pieceController.updatePiece);
  *                 message:
  *                   type: string
  *                   description: Confirmation message
+ *       401:
+ *         description: Unauthorized
  *       404:
  *         description: Piece work not found
  *       500:
  *         description: Server error
  */
 router.delete("/piece/:id", pieceController.deletePiece);
+
 
 //==========================================================
 // Warehouse CRUD routes
@@ -1261,6 +1319,8 @@ router.delete("/piece/:id", pieceController.deletePiece);
  *   post:
  *     summary: Yangi ombor yaratish
  *     tags: [Warehouses]
+ *     security:
+ *       - ApiKeyAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -1320,6 +1380,8 @@ router.delete("/piece/:id", pieceController.deletePiece);
  *                       format: date-time
  *       400:
  *         description: Validatsiya xatosi
+ *       401:
+ *         description: Unauthorized
  *       500:
  *         description: Server xatosi
  */
@@ -1331,6 +1393,8 @@ router.post("/warehouse", validateWarehouse, warehouseController.createWarehouse
  *   get:
  *     summary: Barcha omborlarni olish
  *     tags: [Warehouses]
+ *     security:
+ *       - ApiKeyAuth: []
  *     responses:
  *       200:
  *         description: Omborlar ro'yxati
@@ -1366,6 +1430,8 @@ router.post("/warehouse", validateWarehouse, warehouseController.createWarehouse
  *                       updatedAt:
  *                         type: string
  *                         format: date-time
+ *       401:
+ *         description: Unauthorized
  *       500:
  *         description: Server xatosi
  */
@@ -1377,6 +1443,8 @@ router.get("/warehouse", warehouseController.getAllWarehouses);
  *   get:
  *     summary: Omborni ID bo'yicha olish
  *     tags: [Warehouses]
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -1417,6 +1485,8 @@ router.get("/warehouse", warehouseController.getAllWarehouses);
  *                     updatedAt:
  *                       type: string
  *                       format: date-time
+ *       401:
+ *         description: Unauthorized
  *       404:
  *         description: Ombor topilmadi
  *       500:
@@ -1430,6 +1500,8 @@ router.get("/warehouse/:id", warehouseController.getWarehouseById);
  *   put:
  *     summary: Omborni yangilash
  *     tags: [Warehouses]
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -1461,10 +1533,12 @@ router.get("/warehouse/:id", warehouseController.getWarehouseById);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/WarehouseResponse'
- *       404:
- *         description: Ombor topilmadi
  *       400:
  *         description: Validatsiya xatosi
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Ombor topilmadi
  *       500:
  *         description: Server xatosi
  */
@@ -1476,6 +1550,8 @@ router.put("/warehouse/:id", validateWarehouse, warehouseController.updateWareho
  *   delete:
  *     summary: Omborni o'chirish
  *     tags: [Warehouses]
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -1497,6 +1573,8 @@ router.put("/warehouse/:id", validateWarehouse, warehouseController.updateWareho
  *                   type: string
  *                 innerData:
  *                   type: null
+ *       401:
+ *         description: Unauthorized
  *       404:
  *         description: Ombor topilmadi
  *       500:
@@ -1512,6 +1590,8 @@ router.delete("/warehouse/:id", warehouseController.deleteWarehouse);
  *   post:
  *     summary: Omborga material qo'shish
  *     tags: [Materials]
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -1532,10 +1612,12 @@ router.delete("/warehouse/:id", warehouseController.deleteWarehouse);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/WarehouseResponse'
- *       404:
- *         description: Ombor topilmadi
  *       400:
  *         description: Validatsiya xatosi
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Ombor topilmadi
  *       500:
  *         description: Server xatosi
  */
@@ -1547,6 +1629,8 @@ router.post("/warehouse/:id/materials", validateMaterial, warehouseController.ad
  *   get:
  *     summary: Materialni ID bo'yicha olish
  *     tags: [Materials]
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -1574,6 +1658,8 @@ router.post("/warehouse/:id/materials", validateMaterial, warehouseController.ad
  *                   type: string
  *                 innerData:
  *                   $ref: '#/components/schemas/Material'
+ *       401:
+ *         description: Unauthorized
  *       404:
  *         description: Ombor yoki material topilmadi
  *       500:
@@ -1587,6 +1673,8 @@ router.get("/warehouse/:id/materials/:materialId", warehouseController.getMateri
  *   put:
  *     summary: Materialni yangilash
  *     tags: [Materials]
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -1613,10 +1701,12 @@ router.get("/warehouse/:id/materials/:materialId", warehouseController.getMateri
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/WarehouseResponse'
- *       404:
- *         description: Ombor yoki material topilmadi
  *       400:
  *         description: Validatsiya xatosi
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Ombor yoki material topilmadi
  *       500:
  *         description: Server xatosi
  */
@@ -1628,6 +1718,8 @@ router.put("/warehouse/:id/materials/:materialId", validateMaterial, warehouseCo
  *   delete:
  *     summary: Materialni o'chirish
  *     tags: [Materials]
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -1648,6 +1740,8 @@ router.put("/warehouse/:id/materials/:materialId", validateMaterial, warehouseCo
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/WarehouseResponse'
+ *       401:
+ *         description: Unauthorized
  *       404:
  *         description: Ombor yoki material topilmadi
  *       500:
