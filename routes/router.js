@@ -1319,6 +1319,121 @@ router.delete("/piece/:id", pieceController.deletePiece);
 //==========================================================
 // Warehouse CRUD routes
 
+// models/Material.js (No changes to the Mongoose schema, only Swagger annotations added below)
+
+// Warehouse CRUD Routes with Swagger Annotations
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Material:
+ *       type: object
+ *       required:
+ *         - name
+ *         - unit
+ *         - quantity
+ *         - price
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Materialning nomi
+ *           example: "Tsement"
+ *         unit:
+ *           type: string
+ *           enum: ["kg", "piece", "meter", "liter", "roll"]
+ *           description: Materialning o'lchov birligi
+ *           example: "kg"
+ *         quantity:
+ *           type: number
+ *           description: Materialning miqdori
+ *           minimum: 0
+ *           example: 500
+ *         price:
+ *           type: number
+ *           description: Materialning narxi
+ *           example: 25000
+ *         category:
+ *           type: string
+ *           description: Materialning kategoriyasi (ixtiyoriy)
+ *           example: "Qurilish materiallari"
+ *         code:
+ *           type: string
+ *           description: Materialning noyob kodi (standart bo'sh qator)
+ *           default: ""
+ *           example: "CEM-001"
+ *         supplier:
+ *           type: string
+ *           description: Materialni yetkazib beruvchi (standart bo'sh qator)
+ *           default: ""
+ *           example: "ABC Supplies"
+ *         receivedDate:
+ *           type: string
+ *           format: date-time
+ *           description: Material qabul qilingan sana (standart holatda hozirgi vaqt)
+ *           default: "current timestamp"
+ *           example: "2025-04-01T10:00:00Z"
+ *         _id:
+ *           type: string
+ *           description: Materialning avtomatik generatsiya qilinadigan IDsi
+ *           example: "615f2c8e9f1b2c001f8b4567"
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *           description: Yaratilgan sana
+ *           example: "2025-04-01T10:00:00Z"
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *           description: Yangilangan sana
+ *           example: "2025-04-01T12:00:00Z"
+ *     WarehouseResponse:
+ *       type: object
+ *       properties:
+ *         state:
+ *           type: boolean
+ *           description: Operatsiya muvaffaqiyatli bo'lganligi
+ *           example: true
+ *         message:
+ *           type: string
+ *           description: Operatsiya haqida xabar
+ *           example: "Ombor muvaffaqiyatli yangilandi"
+ *         innerData:
+ *           type: object
+ *           properties:
+ *             _id:
+ *               type: string
+ *               description: Omborning noyob identifikatori
+ *               example: "615f2c8e9f1b2c001f8b1234"
+ *             name:
+ *               type: string
+ *               description: Ombor nomi
+ *               example: "Asosiy ombor"
+ *             description:
+ *               type: string
+ *               description: Ombor tavsifi
+ *               example: "Qurilish materiallari uchun ombor"
+ *             category:
+ *               type: string
+ *               enum: ["Tayyor maxsulotlar", "Homashyolar"]
+ *               description: Ombor kategoriyasi
+ *               example: "Homashyolar"
+ *             materials:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Material'
+ *             createdAt:
+ *               type: string
+ *               format: date-time
+ *               description: Yaratilgan sana
+ *               example: "2025-04-01T10:00:00Z"
+ *             updatedAt:
+ *               type: string
+ *               format: date-time
+ *               description: Yangilangan sana
+ *               example: "2025-04-01T12:00:00Z"
+ */
+
 /**
  * @swagger
  * /api/warehouse:
@@ -1340,50 +1455,23 @@ router.delete("/piece/:id", pieceController.deletePiece);
  *               name:
  *                 type: string
  *                 description: Ombor nomi (noyob bo'lishi kerak)
+ *                 example: "Asosiy ombor"
  *               description:
  *                 type: string
  *                 description: Ombor tavsifi
+ *                 example: "Qurilish materiallari uchun ombor"
  *               category:
  *                 type: string
  *                 enum: ["Tayyor maxsulotlar", "Homashyolar"]
  *                 description: Ombor kategoriyasi
+ *                 example: "Homashyolar"
  *     responses:
  *       201:
  *         description: Ombor muvaffaqiyatli yaratildi
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 state:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 innerData:
- *                   type: object
- *                   properties:
- *                     _id:
- *                       type: string
- *                       description: Noyob identifikator
- *                     name:
- *                       type: string
- *                       description: Ombor nomi
- *                     description:
- *                       type: string
- *                       description: Ombor tavsifi
- *                     category:
- *                       type: string
- *                       description: Ombor kategoriyasi
- *                     materials:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/Material'
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                     updatedAt:
- *                       type: string
- *                       format: date-time
+ *               $ref: '#/components/schemas/WarehouseResponse'
  *       400:
  *         description: Validatsiya xatosi
  *       401:
@@ -1416,26 +1504,7 @@ router.post("/warehouse", validateWarehouse, warehouseController.createWarehouse
  *                 innerData:
  *                   type: array
  *                   items:
- *                     type: object
- *                     properties:
- *                       _id:
- *                         type: string
- *                       name:
- *                         type: string
- *                       description:
- *                         type: string
- *                       category:
- *                         type: string
- *                       materials:
- *                         type: array
- *                         items:
- *                           $ref: '#/components/schemas/Material'
- *                       createdAt:
- *                         type: string
- *                         format: date-time
- *                       updatedAt:
- *                         type: string
- *                         format: date-time
+ *                     $ref: '#/components/schemas/WarehouseResponse/properties/innerData'
  *       401:
  *         description: Unauthorized
  *       500:
@@ -1464,33 +1533,7 @@ router.get("/warehouse", warehouseController.getAllWarehouses);
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 state:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 innerData:
- *                   type: object
- *                   properties:
- *                     _id:
- *                       type: string
- *                     name:
- *                       type: string
- *                     description:
- *                       type: string
- *                     category:
- *                       type: string
- *                     materials:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/Material'
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                     updatedAt:
- *                       type: string
- *                       format: date-time
+ *               $ref: '#/components/schemas/WarehouseResponse'
  *       401:
  *         description: Unauthorized
  *       404:
@@ -1525,13 +1568,16 @@ router.get("/warehouse/:id", warehouseController.getWarehouseById);
  *               name:
  *                 type: string
  *                 description: Ombor nomi (noyob bo'lishi kerak)
+ *                 example: "Asosiy ombor"
  *               description:
  *                 type: string
  *                 description: Ombor tavsifi
+ *                 example: "Qurilish materiallari uchun ombor"
  *               category:
  *                 type: string
  *                 enum: ["Tayyor maxsulotlar", "Homashyolar"]
  *                 description: Ombor kategoriyasi
+ *                 example: "Homashyolar"
  *     responses:
  *       200:
  *         description: Ombor yangilandi
@@ -1754,6 +1800,446 @@ router.put("/warehouse/:id/materials/:materialId", validateMaterial, warehouseCo
  *         description: Server xatosi
  */
 router.delete("/warehouse/:id/materials/:materialId", warehouseController.deleteMaterial);
+
+
+
+
+
+// /**
+//  * @swagger
+//  * /api/warehouse:
+//  *   post:
+//  *     summary: Yangi ombor yaratish
+//  *     tags: [Warehouses]
+//  *     security:
+//  *       - ApiKeyAuth: []
+//  *     requestBody:
+//  *       required: true
+//  *       content:
+//  *         application/json:
+//  *           schema:
+//  *             type: object
+//  *             required:
+//  *               - name
+//  *               - category
+//  *             properties:
+//  *               name:
+//  *                 type: string
+//  *                 description: Ombor nomi (noyob bo'lishi kerak)
+//  *               description:
+//  *                 type: string
+//  *                 description: Ombor tavsifi
+//  *               category:
+//  *                 type: string
+//  *                 enum: ["Tayyor maxsulotlar", "Homashyolar"]
+//  *                 description: Ombor kategoriyasi
+//  *     responses:
+//  *       201:
+//  *         description: Ombor muvaffaqiyatli yaratildi
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 state:
+//  *                   type: boolean
+//  *                 message:
+//  *                   type: string
+//  *                 innerData:
+//  *                   type: object
+//  *                   properties:
+//  *                     _id:
+//  *                       type: string
+//  *                       description: Noyob identifikator
+//  *                     name:
+//  *                       type: string
+//  *                       description: Ombor nomi
+//  *                     description:
+//  *                       type: string
+//  *                       description: Ombor tavsifi
+//  *                     category:
+//  *                       type: string
+//  *                       description: Ombor kategoriyasi
+//  *                     materials:
+//  *                       type: array
+//  *                       items:
+//  *                         $ref: '#/components/schemas/Material'
+//  *                     createdAt:
+//  *                       type: string
+//  *                       format: date-time
+//  *                     updatedAt:
+//  *                       type: string
+//  *                       format: date-time
+//  *       400:
+//  *         description: Validatsiya xatosi
+//  *       401:
+//  *         description: Unauthorized
+//  *       500:
+//  *         description: Server xatosi
+//  */
+// router.post("/warehouse", validateWarehouse, warehouseController.createWarehouse);
+
+// /**
+//  * @swagger
+//  * /api/warehouse:
+//  *   get:
+//  *     summary: Barcha omborlarni olish
+//  *     tags: [Warehouses]
+//  *     security:
+//  *       - ApiKeyAuth: []
+//  *     responses:
+//  *       200:
+//  *         description: Omborlar ro'yxati
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 state:
+//  *                   type: boolean
+//  *                 message:
+//  *                   type: string
+//  *                 innerData:
+//  *                   type: array
+//  *                   items:
+//  *                     type: object
+//  *                     properties:
+//  *                       _id:
+//  *                         type: string
+//  *                       name:
+//  *                         type: string
+//  *                       description:
+//  *                         type: string
+//  *                       category:
+//  *                         type: string
+//  *                       materials:
+//  *                         type: array
+//  *                         items:
+//  *                           $ref: '#/components/schemas/Material'
+//  *                       createdAt:
+//  *                         type: string
+//  *                         format: date-time
+//  *                       updatedAt:
+//  *                         type: string
+//  *                         format: date-time
+//  *       401:
+//  *         description: Unauthorized
+//  *       500:
+//  *         description: Server xatosi
+//  */
+// router.get("/warehouse", warehouseController.getAllWarehouses);
+
+// /**
+//  * @swagger
+//  * /api/warehouse/{id}:
+//  *   get:
+//  *     summary: Omborni ID bo'yicha olish
+//  *     tags: [Warehouses]
+//  *     security:
+//  *       - ApiKeyAuth: []
+//  *     parameters:
+//  *       - in: path
+//  *         name: id
+//  *         required: true
+//  *         schema:
+//  *           type: string
+//  *         description: Ombor IDsi
+//  *     responses:
+//  *       200:
+//  *         description: Ombor ma'lumotlari
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 state:
+//  *                   type: boolean
+//  *                 message:
+//  *                   type: string
+//  *                 innerData:
+//  *                   type: object
+//  *                   properties:
+//  *                     _id:
+//  *                       type: string
+//  *                     name:
+//  *                       type: string
+//  *                     description:
+//  *                       type: string
+//  *                     category:
+//  *                       type: string
+//  *                     materials:
+//  *                       type: array
+//  *                       items:
+//  *                         $ref: '#/components/schemas/Material'
+//  *                     createdAt:
+//  *                       type: string
+//  *                       format: date-time
+//  *                     updatedAt:
+//  *                       type: string
+//  *                       format: date-time
+//  *       401:
+//  *         description: Unauthorized
+//  *       404:
+//  *         description: Ombor topilmadi
+//  *       500:
+//  *         description: Server xatosi
+//  */
+// router.get("/warehouse/:id", warehouseController.getWarehouseById);
+
+// /**
+//  * @swagger
+//  * /api/warehouse/{id}:
+//  *   put:
+//  *     summary: Omborni yangilash
+//  *     tags: [Warehouses]
+//  *     security:
+//  *       - ApiKeyAuth: []
+//  *     parameters:
+//  *       - in: path
+//  *         name: id
+//  *         required: true
+//  *         schema:
+//  *           type: string
+//  *         description: Ombor IDsi
+//  *     requestBody:
+//  *       required: true
+//  *       content:
+//  *         application/json:
+//  *           schema:
+//  *             type: object
+//  *             properties:
+//  *               name:
+//  *                 type: string
+//  *                 description: Ombor nomi (noyob bo'lishi kerak)
+//  *               description:
+//  *                 type: string
+//  *                 description: Ombor tavsifi
+//  *               category:
+//  *                 type: string
+//  *                 enum: ["Tayyor maxsulotlar", "Homashyolar"]
+//  *                 description: Ombor kategoriyasi
+//  *     responses:
+//  *       200:
+//  *         description: Ombor yangilandi
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               $ref: '#/components/schemas/WarehouseResponse'
+//  *       400:
+//  *         description: Validatsiya xatosi
+//  *       401:
+//  *         description: Unauthorized
+//  *       404:
+//  *         description: Ombor topilmadi
+//  *       500:
+//  *         description: Server xatosi
+//  */
+// router.put("/warehouse/:id", validateWarehouse, warehouseController.updateWarehouse);
+
+// /**
+//  * @swagger
+//  * /api/warehouse/{id}:
+//  *   delete:
+//  *     summary: Omborni o'chirish
+//  *     tags: [Warehouses]
+//  *     security:
+//  *       - ApiKeyAuth: []
+//  *     parameters:
+//  *       - in: path
+//  *         name: id
+//  *         required: true
+//  *         schema:
+//  *           type: string
+//  *         description: Ombor IDsi
+//  *     responses:
+//  *       200:
+//  *         description: Ombor o'chirildi
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 state:
+//  *                   type: boolean
+//  *                 message:
+//  *                   type: string
+//  *                 innerData:
+//  *                   type: null
+//  *       401:
+//  *         description: Unauthorized
+//  *       404:
+//  *         description: Ombor topilmadi
+//  *       500:
+//  *         description: Server xatosi
+//  */
+// router.delete("/warehouse/:id", warehouseController.deleteWarehouse);
+
+// // Material CRUD Routes within Warehouse
+
+// /**
+//  * @swagger
+//  * /api/warehouse/{id}/materials:
+//  *   post:
+//  *     summary: Omborga material qo'shish
+//  *     tags: [Materials]
+//  *     security:
+//  *       - ApiKeyAuth: []
+//  *     parameters:
+//  *       - in: path
+//  *         name: id
+//  *         required: true
+//  *         schema:
+//  *           type: string
+//  *         description: Ombor IDsi
+//  *     requestBody:
+//  *       required: true
+//  *       content:
+//  *         application/json:
+//  *           schema:
+//  *             $ref: '#/components/schemas/Material'
+//  *     responses:
+//  *       201:
+//  *         description: Material qo'shildi
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               $ref: '#/components/schemas/WarehouseResponse'
+//  *       400:
+//  *         description: Validatsiya xatosi
+//  *       401:
+//  *         description: Unauthorized
+//  *       404:
+//  *         description: Ombor topilmadi
+//  *       500:
+//  *         description: Server xatosi
+//  */
+// router.post("/warehouse/:id/materials", validateMaterial, warehouseController.addMaterial);
+
+// /**
+//  * @swagger
+//  * /api/warehouse/{id}/materials/{materialId}:
+//  *   get:
+//  *     summary: Materialni ID bo'yicha olish
+//  *     tags: [Materials]
+//  *     security:
+//  *       - ApiKeyAuth: []
+//  *     parameters:
+//  *       - in: path
+//  *         name: id
+//  *         required: true
+//  *         schema:
+//  *           type: string
+//  *         description: Ombor IDsi
+//  *       - in: path
+//  *         name: materialId
+//  *         required: true
+//  *         schema:
+//  *           type: string
+//  *         description: Material IDsi
+//  *     responses:
+//  *       200:
+//  *         description: Material ma'lumotlari
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 state:
+//  *                   type: boolean
+//  *                 message:
+//  *                   type: string
+//  *                 innerData:
+//  *                   $ref: '#/components/schemas/Material'
+//  *       401:
+//  *         description: Unauthorized
+//  *       404:
+//  *         description: Ombor yoki material topilmadi
+//  *       500:
+//  *         description: Server xatosi
+//  */
+// router.get("/warehouse/:id/materials/:materialId", warehouseController.getMaterial);
+
+// /**
+//  * @swagger
+//  * /api/warehouse/{id}/materials/{materialId}:
+//  *   put:
+//  *     summary: Materialni yangilash
+//  *     tags: [Materials]
+//  *     security:
+//  *       - ApiKeyAuth: []
+//  *     parameters:
+//  *       - in: path
+//  *         name: id
+//  *         required: true
+//  *         schema:
+//  *           type: string
+//  *         description: Ombor IDsi
+//  *       - in: path
+//  *         name: materialId
+//  *         required: true
+//  *         schema:
+//  *           type: string
+//  *         description: Material IDsi
+//  *     requestBody:
+//  *       required: true
+//  *       content:
+//  *         application/json:
+//  *           schema:
+//  *             $ref: '#/components/schemas/Material'
+//  *     responses:
+//  *       200:
+//  *         description: Material yangilandi
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               $ref: '#/components/schemas/WarehouseResponse'
+//  *       400:
+//  *         description: Validatsiya xatosi
+//  *       401:
+//  *         description: Unauthorized
+//  *       404:
+//  *         description: Ombor yoki material topilmadi
+//  *       500:
+//  *         description: Server xatosi
+//  */
+// router.put("/warehouse/:id/materials/:materialId", validateMaterial, warehouseController.updateMaterial);
+
+// /**
+//  * @swagger
+//  * /api/warehouse/{id}/materials/{materialId}:
+//  *   delete:
+//  *     summary: Materialni o'chirish
+//  *     tags: [Materials]
+//  *     security:
+//  *       - ApiKeyAuth: []
+//  *     parameters:
+//  *       - in: path
+//  *         name: id
+//  *         required: true
+//  *         schema:
+//  *           type: string
+//  *         description: Ombor IDsi
+//  *       - in: path
+//  *         name: materialId
+//  *         required: true
+//  *         schema:
+//  *           type: string
+//  *         description: Material IDsi
+//  *     responses:
+//  *       200:
+//  *         description: Material o'chirildi
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               $ref: '#/components/schemas/WarehouseResponse'
+//  *       401:
+//  *         description: Unauthorized
+//  *       404:
+//  *         description: Ombor yoki material topilmadi
+//  *       500:
+//  *         description: Server xatosi
+//  */
+// router.delete("/warehouse/:id/materials/:materialId", warehouseController.deleteMaterial);
 
 
 // Additional Swagger components for reusability

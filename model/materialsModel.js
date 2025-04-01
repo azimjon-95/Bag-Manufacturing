@@ -27,12 +27,12 @@ const MaterialSchema = new mongoose.Schema({
   },
   code: {
     type: String,
-    required: true,
+    default: "",
     unique: true, // Har bir materialning kodi takrorlanmas bo‘lishi uchun
   },
   supplier: {
     type: String,
-    required: true, // Kimdan kelgani
+    default: ""
   },
   receivedDate: {
     type: Date,
