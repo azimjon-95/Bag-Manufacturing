@@ -20,7 +20,11 @@ app.use(express.json());
 
 // CORS sozlamalari
 const corsOptions = {
-  origin: ["https://sumka-front.vercel.app/", "http://localhost:3000", "https://bag-manufacturing.up.railway.app/"],
+  origin: [
+    "https://sumka-front.vercel.app",
+    "http://localhost:3000",
+    "https://bag-manufacturing.up.railway.app"
+  ],
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   credentials: true,
 };
