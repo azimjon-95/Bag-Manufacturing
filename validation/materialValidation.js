@@ -1,90 +1,71 @@
-// middleware/warehouseValidation.js
 const Ajv = require("ajv");
 const ajv = new Ajv({ allErrors: true });
 require("ajv-errors")(ajv);
 require("ajv-formats")(ajv);
 const Response = require("../utils/response");
 
-// Warehouse validation schema
-const warehouseSchema = {
+const materialSchema = {
   type: "object",
   properties: {
     name: {
       type: "string",
       minLength: 1,
-      errorMessage: {
-        type: "Ombor nomi string bo'lishi kerak",
-        minLength: "Ombor nomi bo'sh bo'lmasligi kerak",
-      },
+      errorMessage: "Material nomi bo'sh bo'lishi mumkin emas",
     },
-    description: {
+    unit: {
       type: "string",
-      errorMessage: {
-        type: "Tavsif string bo'lishi kerak",
-      },
+      enum: ["kg", "piece", "meter", "liter", "roll"],
+      errorMessage: "Unit faqat: 'kg', 'piece', 'meter', 'liter', 'roll' bo'lishi mumkin",
+    },
+    quantity: {
+      type: "number",
+      minimum: 0,
+      errorMessage: "Quantity 0 dan kichik bo'lmasligi kerak",
+    },
+    price: {
+      type: "number",
+      minimum: 0,
+      errorMessage: "Narx 0 dan kichik bo'lmasligi kerak",
     },
     category: {
       type: "string",
-      enum: ["Tayyor maxsulotlar", "Homashyolar"],
-      errorMessage: {
-        type: "Kategoriya string bo'lishi kerak",
-        enum: "Kategoriya 'Tayyor maxsulotlar' yoki 'Homashyolar' bo'lishi kerak",
-      },
+      nullable: true,
     },
-    materials: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          name: {
-            type: "string",
-            minLength: 1,
-            errorMessage: {
-              type: "Material nomi string bo'lishi kerak",
-              minLength: "Material nomi bo'sh bo'lmasligi kerak",
-            },
-          },
-          unit: {
-            type: "string",
-            enum: ["kg", "piece", "meter", "liter", "roll"],
-            errorMessage: {
-              type: "O'lchov birligi string bo'lishi kerak",
-              enum: "O'lchov birligi 'kg', 'piece', 'meter', 'liter', yoki 'roll' bo'lishi kerak",
-            },
-          },
-          quantity: {
-            type: "number",
-            minimum: 0,
-            errorMessage: {
-              type: "Miqdor raqam bo'lishi kerak",
-              minimum: "Miqdor 0 dan kam bo'lmasligi kerak",
-            },
-          },
-          price: {
-            type: "number",
-            errorMessage: {
-              type: "Narx raqam bo'lishi kerak",
-            },
-          },
-          category: {
-            type: "string",
-            errorMessage: {
-              type: "Material kategoriyasi string bo'lishi kerak",
-            },
-          },
-        },
-        required: ["name", "unit", "quantity", "price"],
-        additionalProperties: false,
-      },
+    yagonaId: {
+      type: "string",
+      nullable: true,
+    },
+    supplier: {
+      type: "string",
+      nullable: true,
+    },
+    receivedDate: {
+      type: "string",
+      format: "date-time",
+      nullable: true,
+    },
+    warehouseId: {
+      type: "string",
+      pattern: "^[0-9a-fA-F]{24}$",
+      errorMessage: "warehouseId noto‘g‘ri formatda (ObjectId bo‘lishi kerak)",
     },
   },
-  required: ["name", "category"],
+  required: ["name", "unit", "quantity", "price", "warehouseId"],
   additionalProperties: false,
+  errorMessage: {
+    required: {
+      name: "Material nomi majburiy",
+      unit: "Unit majburiy",
+      quantity: "Quantity majburiy",
+      price: "Narx majburiy",
+      warehouseId: "WarehouseId majburiy",
+    },
+    additionalProperties: "Qo‘shimcha xususiyatlarga ruxsat berilmaydi",
+  },
 };
 
-// Validation middleware for creating/updating warehouse
-const validateWarehouse = (req, res, next) => {
-  const validate = ajv.compile(warehouseSchema);
+const validateMaterial = (req, res, next) => {
+  const validate = ajv.compile(materialSchema);
   const valid = validate(req.body);
 
   if (!valid) {
@@ -94,26 +75,10 @@ const validateWarehouse = (req, res, next) => {
     }));
     return Response.error(res, "Validatsiya xatosi", errors);
   }
+
   next();
 };
 
-// Validation middleware for adding material
-const validateMaterial = (req, res, next) => {
-  const materialSchema = warehouseSchema.properties.materials.items;
-  const validate = ajv.compile(materialSchema);
-  const valid = validate(req.body);
+module.exports = validateMaterial;
 
-  if (!valid) {
-    const errors = validate.errors.map(err => ({
-      field: err.instancePath.replace('/', ''),
-      message: err.message,
-    }));
-    return Response.error(res, "Material validatsiya xatosi", errors);
-  }
-  next();
-};
 
-module.exports = {
-  validateWarehouse,
-  validateMaterial,
-};

@@ -4,8 +4,8 @@ const mongoose = require("mongoose");
 const MaterialSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true,
     trim: true,
+    required: true,
   },
   unit: {
     type: String,
@@ -14,8 +14,8 @@ const MaterialSchema = new mongoose.Schema({
   },
   quantity: {
     type: Number,
-    required: true,
     min: 0,
+    required: true,
   },
   price: {
     type: Number,
@@ -25,27 +25,32 @@ const MaterialSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
-  code: {
+  yagoneId: {
     type: String,
-    default: "",
-    unique: true, // Har bir materialning kodi takrorlanmas bo‘lishi uchun
+    default: () => `MAT-${Math.random().toString(36).substr(2, 9)}`,
+    // unique: true,
   },
   supplier: {
     type: String,
-    default: ""
+    default: "",
   },
   receivedDate: {
     type: Date,
-    default: Date.now, // Material qachon kelgani
+    default: Date.now,
   },
+  warehouseId: {  // Added Warehouse reference
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Mywarehouse",
+    required: true
+  }
 }, { timestamps: true });
 
+// models/Warehouse.js
 const WarehouseSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
     trim: true,
-    unique: true,
   },
   description: {
     type: String,
@@ -54,17 +59,17 @@ const WarehouseSchema = new mongoose.Schema({
   category: {
     type: String,
     trim: true,
-    enum: ["Tayyor maxsulotlar", "Homashyolar"], // Only these options allowed
-    required: true, // Making it required, remove this if it should be optional
-  },
-  materials: [MaterialSchema],  // Embedded materials array
+    enum: ["Tayyor maxsulotlar", "Homashyolar"],
+    required: true,
+  }
 }, { timestamps: true });
 
-module.exports = mongoose.model("Warehouse", WarehouseSchema);
+const Warehouse = mongoose.model("Mywarehouse", WarehouseSchema);
+const Material = mongoose.model("Material", MaterialSchema);
 
-
-
-
-
+module.exports = {
+  Material,
+  Warehouse
+};
 
 
