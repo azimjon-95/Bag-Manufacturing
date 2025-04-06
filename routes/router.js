@@ -1365,6 +1365,8 @@ router.get(
   WarehouseController.getMaterialsByWarehouseId
 ); // Get all materials in warehouse
 
+router.get("/material-all", WarehouseController.getAllMaterials);
+
 // Additional Swagger components for reusability
 /**
  * @swagger

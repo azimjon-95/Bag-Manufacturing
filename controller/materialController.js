@@ -205,6 +205,59 @@ class WarehouseController {
       return Response.serverError(res, error.message);
     }
   }
+
+  // get all materials
+  async getAllMaterials(req, res) {
+    try {
+      // 1. Homashyo omborlarini topish
+      const rawMaterialWarehouses = await Warehouse.find({
+        category: "Homashyolar",
+      }).select("_id");
+
+      // 2. Tayyor maxsulot omborlarini topish
+      const finishedProductWarehouses = await Warehouse.find({
+        category: "Tayyor maxsulotlar",
+      }).select("_id");
+
+      // Agar hech qanday ombor topilmasa
+      if (!rawMaterialWarehouses.length && !finishedProductWarehouses.length) {
+        return Response.notFound(res, "Omborlar topilmadi");
+      }
+
+      // 3. Ombor ID larini arrayga yig‘ish
+      const rawMaterialWarehouseIds = rawMaterialWarehouses.map(
+        (warehouse) => warehouse._id
+      );
+      const finishedProductWarehouseIds = finishedProductWarehouses.map(
+        (warehouse) => warehouse._id
+      );
+
+      // 4. Materiallarni ombor ID lari bo‘yicha filter qilish
+      const rawMaterials = await Material.find({
+        warehouseId: { $in: rawMaterialWarehouseIds },
+      });
+
+      const finishedProducts = await Material.find({
+        warehouseId: { $in: finishedProductWarehouseIds },
+      });
+
+      // Agar hech qanday material topilmasa (ixtiyoriy tekshiruv)
+      if (!rawMaterials.length && !finishedProducts.length) {
+        return Response.notFound(res, "Materiallar topilmadi");
+      }
+
+      // 5. Javobni tayyorlash
+      const responseData = {
+        homashyolar: rawMaterials.length ? rawMaterials : [], // Bo‘sh array qaytarish uchun
+        tayyorMaxsulotlar: finishedProducts.length ? finishedProducts : [], // Bo‘sh array qaytarish uchun
+      };
+
+      return Response.success(res, "Barcha materiallar", responseData);
+    } catch (error) {
+      console.error("Error:", error); // Xatolikni log qilish uchun
+      return Response.serverError(res, "Server xatosi", error.message);
+    }
+  }
 }
 
 module.exports = new WarehouseController();
