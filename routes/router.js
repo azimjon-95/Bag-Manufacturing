@@ -1,18 +1,20 @@
 const router = require("express").Router();
 const workerController = require("../controller/workerController");
 const workerValidation = require("../validation/WorkerValidation");
-const { validateAttendanceScan, validatePieceWork } = require("../validation/attendanceValidation");
+const {
+  validateAttendanceScan,
+  validatePieceWork,
+} = require("../validation/attendanceValidation");
 const adminController = require("../controller/adminController");
 const adminValidation = require("../validation/adminValidation");
-const AttendanceController = require('../controller/attendanceCtrl');
-const CompanyController = require('../controller/companyController');
-const validateCompany = require('../validation/companyValidation');
-const validatePiece = require('../validation/pieceValidation');
-const pieceController = require('../controller/pieceController');
+const AttendanceController = require("../controller/attendanceCtrl");
+const CompanyController = require("../controller/companyController");
+const validateCompany = require("../validation/companyValidation");
+const validatePiece = require("../validation/pieceValidation");
+const pieceController = require("../controller/pieceController");
 const WarehouseController = require("../controller/materialController");
 const validateMaterial = require("../validation/materialValidation");
 const validateWarehouse = require("../validation/warehouseValidation");
-
 
 //==========================================================
 // Admin Routes
@@ -768,7 +770,11 @@ router.delete("/workers/delete/:id", workerController.deleteWorker);
  *       500:
  *         description: Server error
  */
-router.post('/attendance/scan', validateAttendanceScan, AttendanceController.handleQRScan);
+router.post(
+  "/attendance/scan",
+  validateAttendanceScan,
+  AttendanceController.handleQRScan
+);
 
 /**
  * @swagger
@@ -831,7 +837,11 @@ router.post('/attendance/scan', validateAttendanceScan, AttendanceController.han
  *       500:
  *         description: Server error
  */
-router.post('/attendance/piecework', validatePieceWork, AttendanceController.addPieceWork);
+router.post(
+  "/attendance/piecework",
+  validatePieceWork,
+  AttendanceController.addPieceWork
+);
 
 /**
  * @swagger
@@ -868,7 +878,7 @@ router.post('/attendance/piecework', validatePieceWork, AttendanceController.add
  *       500:
  *         description: Server error
  */
-router.get('/attendance/:id', AttendanceController.getAttendanceById);
+router.get("/attendance/:id", AttendanceController.getAttendanceById);
 
 //==========================================================
 // Company Routes
@@ -904,7 +914,7 @@ router.get('/attendance/:id', AttendanceController.getAttendanceById);
  *       500:
  *         description: Server error
  */
-router.get('/company/all', CompanyController.getCompanies);
+router.get("/company/all", CompanyController.getCompanies);
 
 /**
  * @swagger
@@ -995,7 +1005,11 @@ router.get('/company/all', CompanyController.getCompanies);
  *       500:
  *         description: Server error
  */
-router.post('/company/create', validateCompany, CompanyController.createOrUpdateCompany);
+router.post(
+  "/company/create",
+  validateCompany,
+  CompanyController.createOrUpdateCompany
+);
 
 /**
  * @swagger
@@ -1035,8 +1049,7 @@ router.post('/company/create', validateCompany, CompanyController.createOrUpdate
  *       500:
  *         description: Server error
  */
-router.delete('/company/delete/:id', CompanyController.deleteCompany);
-
+router.delete("/company/delete/:id", CompanyController.deleteCompany);
 
 //==========================================================
 // Piece Routes
@@ -1316,26 +1329,41 @@ router.put("/piece/:id", pieceController.updatePiece);
  */
 router.delete("/piece/:id", pieceController.deletePiece);
 
-
 //==========================================================
 // Warehouse CRUD routes
 
 // Warehouse routes
-router.post("/warehouses", validateWarehouse, WarehouseController.createWarehouse); // Create warehouse
+router.post(
+  "/warehouses",
+  validateWarehouse,
+  WarehouseController.createWarehouse
+); // Create warehouse
 router.get("/warehouses", WarehouseController.getAllWarehouses); // Get all warehouses
 router.get("/warehouses/:id", WarehouseController.getWarehouseById); // Get warehouse by ID
-router.put("/warehouses/:id", validateWarehouse, WarehouseController.updateWarehouse); // Update warehouse
+router.put(
+  "/warehouses/:id",
+  validateWarehouse,
+  WarehouseController.updateWarehouse
+); // Update warehouse
 router.delete("/warehouses/:id", WarehouseController.deleteWarehouse); // Delete warehouse
 
 // Material routes
-router.post("/warehouses/:id/materials", validateMaterial, WarehouseController.addMaterial); // Add material to warehouse
-router.put("/materials/:materialId", validateMaterial, WarehouseController.updateMaterial); // Update material
+router.post(
+  "/warehouses/materials",
+  validateMaterial,
+  WarehouseController.addMaterial
+); // Add material to warehouse
+router.put(
+  "/materials/:materialId",
+  validateMaterial,
+  WarehouseController.updateMaterial
+); // Update material
 router.delete("/materials/:materialId", WarehouseController.deleteMaterial); // Delete material
 router.get("/materials/:materialId", WarehouseController.getMaterial); // Get material by ID
-router.get("/warehouses/:id/materials", WarehouseController.getMaterialsByWarehouseId); // Get all materials in warehouse
-
-
-
+router.get(
+  "/warehouses/:id/materials",
+  WarehouseController.getMaterialsByWarehouseId
+); // Get all materials in warehouse
 
 // Additional Swagger components for reusability
 /**
@@ -1477,16 +1505,3 @@ router.get("/warehouses/:id/materials", WarehouseController.getMaterialsByWareho
  *         - name
  */
 module.exports = router;
-
-
-
-
-
-
-
-
-
-
-
-
-

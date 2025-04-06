@@ -24,7 +24,11 @@ class WarehouseController {
   async getAllWarehouses(req, res) {
     try {
       const warehouses = await Warehouse.find();
-      return Response.success(res, "Omborlar muvaffaqiyatli qaytarildi", warehouses);
+      return Response.success(
+        res,
+        "Omborlar muvaffaqiyatli qaytarildi",
+        warehouses
+      );
     } catch (error) {
       return Response.serverError(res, "Server xatosi");
     }
@@ -37,7 +41,10 @@ class WarehouseController {
         return Response.notFound(res, "Ombor topilmadi");
       }
       const materials = await Material.find({ warehouseId: warehouse._id });
-      return Response.success(res, "Ombor muvaffaqiyatli qaytarildi", { warehouse, materials });
+      return Response.success(res, "Ombor muvaffaqiyatli qaytarildi", {
+        warehouse,
+        materials,
+      });
     } catch (error) {
       return Response.serverError(res, "Server xatosi");
     }
@@ -53,7 +60,11 @@ class WarehouseController {
       if (!warehouse) {
         return Response.notFound(res, "Ombor topilmadi");
       }
-      return Response.success(res, "Ombor muvaffaqiyatli yangilandi", warehouse);
+      return Response.success(
+        res,
+        "Ombor muvaffaqiyatli yangilandi",
+        warehouse
+      );
     } catch (error) {
       if (error.code === 11000) {
         return Response.error(res, "Bunday nomli ombor allaqachon mavjud");
@@ -75,46 +86,38 @@ class WarehouseController {
       // Now delete the warehouse
       await warehouse.deleteOne();
 
-      return Response.success(res, "Ombor va uning materiallari muvaffaqiyatli o‘chirildi");
+      return Response.success(
+        res,
+        "Ombor va uning materiallari muvaffaqiyatli o‘chirildi"
+      );
     } catch (error) {
       return Response.serverError(res, "Server xatosi");
     }
   }
 
-
   // Material CRUD operations
   async addMaterial(req, res) {
     try {
-      const warehouse = await Warehouse.findById(req.params.id);
-      if (!warehouse) {
-        return Response.notFound(res, "Ombor topilmadi");
-      }
+      const warehouse = await Warehouse.findById(req.body.warehouseId);
+      if (!warehouse) return Response.notFound(res, "Ombor topilmadi");
 
-      const { name, unit, quantity, price, yagonaId } = req.body;
-
-      if (!name || !unit || !quantity || !price) {
-        return Response.error(res, "Material uchun nom, birlik, miqdor va narx majburiy");
-      }
-
+      const { yagonaId } = req.body;
       if (yagonaId) {
         const existingMaterial = await Material.findOne({ yagonaId });
-        if (existingMaterial) {
+        if (existingMaterial)
           return Response.error(res, "Bunday noyob kodli material mavjud");
-        }
       }
-      console.log({
-        ...req.body,
-        warehouseId: warehouse._id
-      });
-      const material = new Material({
-        ...req.body,
-        warehouseId: warehouse._id
-      });
-      await material.save();
-      return Response.created(res, "Material muvaffaqiyatli qo‘shildi", material);
-    } catch (error) {
-      // console.log(error);
 
+      const material = await Material.create(req.body);
+      let res1 = await material.save();
+      if (!res1) return Response.error(res, "Material saqlanmadi");
+
+      return Response.created(
+        res,
+        "Material muvaffaqiyatli qo‘shildi",
+        material
+      );
+    } catch (error) {
       return Response.error(res, error.message);
     }
   }
@@ -139,7 +142,11 @@ class WarehouseController {
         req.body,
         { new: true, runValidators: true }
       );
-      return Response.success(res, "Material muvaffaqiyatli yangilandi", updatedMaterial);
+      return Response.success(
+        res,
+        "Material muvaffaqiyatli yangilandi",
+        updatedMaterial
+      );
     } catch (error) {
       if (error.code === 11000) {
         return Response.error(res, "Bunday noyob kodli material mavjud");
@@ -166,7 +173,11 @@ class WarehouseController {
       if (!material) {
         return Response.notFound(res, "Material topilmadi");
       }
-      return Response.success(res, "Material muvaffaqiyatli qaytarildi", material);
+      return Response.success(
+        res,
+        "Material muvaffaqiyatli qaytarildi",
+        material
+      );
     } catch (error) {
       return Response.serverError(res, "Server xatosi");
     }
@@ -185,14 +196,15 @@ class WarehouseController {
       // Get all materials in this warehouse
       const materials = await Material.find({ warehouseId });
 
-      return Response.success(res, "Material muvaffaqiyatli qaytarildi", materials);
+      return Response.success(
+        res,
+        "Material muvaffaqiyatli qaytarildi",
+        materials
+      );
     } catch (error) {
       return Response.serverError(res, error.message);
     }
   }
-
 }
 
 module.exports = new WarehouseController();
-
-
