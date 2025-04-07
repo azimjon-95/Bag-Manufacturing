@@ -15,6 +15,7 @@ const pieceController = require("../controller/pieceController");
 const WarehouseController = require("../controller/materialController");
 const validateMaterial = require("../validation/materialValidation");
 const validateWarehouse = require("../validation/warehouseValidation");
+const expenseController = require("../controller/expenseController");
 
 //==========================================================
 // Admin Routes
@@ -1366,6 +1367,19 @@ router.get(
 ); // Get all materials in warehouse
 
 router.get("/material-all", WarehouseController.getAllMaterials);
+
+// Expenses
+router.post("/expenses/create", expenseController.createExpense);
+router.get("/expenses/all", expenseController.getAllExpenses);
+router.get("/expenses/:id", expenseController.getExpenseById);
+router.put("/expenses/:id", expenseController.updateExpense);
+router.delete("/expenses/:id", expenseController.deleteExpense);
+router.post("/expenses/period", expenseController.getExpensesByPeriod);
+router.get(
+  "/expenses/relevant/:relevantId",
+  expenseController.getExpenseByRelevantId
+);
+// /expenses?date=2025-02-02
 
 // Additional Swagger components for reusability
 /**
