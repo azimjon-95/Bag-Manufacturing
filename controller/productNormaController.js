@@ -1,5 +1,5 @@
 // Controller
-const ProductNorma = require("../model/productNormaSchema");
+const ProductNorma = require("../model/productNormaSchema"); // Adjusted path
 const { Material } = require("../model/materialsModel");
 
 const createProductNorma = async (req, res) => {

@@ -1,6 +1,6 @@
 const Sale = require("../model/saleSchema");
 const { Material, Warehouse } = require("../model/materialsModel");
-const ProductNorma1 = require("../model/ProductNormaSchema");
+const ProductNorma1 = require("../model/productNormaSchema");
 
 const createSale = async (req, res) => {
   try {
@@ -56,9 +56,8 @@ const createSale = async (req, res) => {
     if (!materialStock || materialStock.quantity < quantity) {
       return res.status(400).json({
         state: false,
-        message: `Omborda yetarli mahsulot yo‘q. Mavjud: ${
-          materialStock?.quantity || 0
-        }, Talab: ${quantity}`,
+        message: `Omborda yetarli mahsulot yo‘q. Mavjud: ${materialStock?.quantity || 0
+          }, Talab: ${quantity}`,
       });
     }
 
