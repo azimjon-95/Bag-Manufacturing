@@ -114,7 +114,7 @@ class ExpenseController {
         {
           $facet: {
             outgoing: [
-              { $match: { type: "Chiqim" } },
+              { $match: { type: "harajat" } },
               {
                 $group: {
                   _id: null,
@@ -192,8 +192,8 @@ class ExpenseController {
       const responseData = {
         period: `${formattedStart} - ${formattedEnd}`, // Misol: "1-Fevral - 4-Fevral"
         allExpenses: results[0].all, // Davr bo‘yicha barcha xarajatlar
-        outgoingExpenses: outgoingData.expenses, // Faqat "Chiqim" xarajatlar
-        totalOutgoing: outgoingData.totalAmount, // "Chiqim" xarajatlarining umumiy miqdori
+        outgoingExpenses: outgoingData.expenses, // Faqat "harajat" xarajatlar
+        totalOutgoing: outgoingData.totalAmount, // "harajat" xarajatlarining umumiy miqdori
         incomeExpenses: incomeData.expenses, // Faqat "Kirim" xarajatlar
         totalIncome: incomeData.totalAmount, // "Kirim" xarajatlarining umumiy miqdori
       };

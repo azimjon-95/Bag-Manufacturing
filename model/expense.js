@@ -25,7 +25,7 @@ const expenseSchema = new mongoose.Schema(
         "Reklama va marketing",
         "Texnika ta’miri",
         "Soliqlar",
-        "Boshqa chiqimlar",
+        "Boshqa harajatlar",
         "Qarzni to‘lash",
       ],
       required: true,
