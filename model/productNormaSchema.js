@@ -51,8 +51,8 @@ const ProductNormaSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const ProductNorma =
-  mongoose.models.ProductNorma ||
-  mongoose.model("ProductNorma", ProductNormaSchema);
+// const ProductNorma = mongoose.model("ProductNorma", ProductNormaSchema);
 
-module.exports = ProductNorma;
+module.exports = mongoose.models.ProductNorma || mongoose.model("ProductNorma", ProductNormaSchema);
+
+
