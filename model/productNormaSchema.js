@@ -1,20 +1,20 @@
 const mongoose = require("mongoose");
 
-// Materialni normasini saqlash uchun ichki schema
+// Material requirement sub-schema
 const MaterialRequirementSchema = new mongoose.Schema({
   materialId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Material", // Material modeliga havola
+    ref: "Material", // Reference to Material model
     required: true,
   },
   quantity: {
     type: Number,
     required: true,
-    min: 0, // Miqdor 0 dan kam bo‘lmasligi kerak
+    min: 0, // Quantity cannot be less than 0
   },
 });
 
-// Tayyor mahsulotning normasini saqlash uchun asosiy schema
+// Main schema for product norms
 const ProductNormaSchema = new mongoose.Schema(
   {
     productName: {
@@ -27,10 +27,25 @@ const ProductNormaSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    materials: [MaterialRequirementSchema], // Norma: qaysi materialdan qancha kerak
+    color: { // Replacing the original 'color' field
+      type: String,
+      required: true,
+    },
+    materials: [MaterialRequirementSchema], // Materials and their quantities
     description: {
       type: String,
-      trim: true,
+    },
+    size: { // Replacing 'razmer'
+      type: String,
+      required: true,
+    },
+    uniqueCode: { // Replacing 'kod'
+      type: String,
+      required: true,
+      unique: true, // Ensures the code is unique
+    },
+    image: { // Replacing 'rasm'
+      type: String, // Could store URL or file path to the image
     },
   },
   { timestamps: true }
