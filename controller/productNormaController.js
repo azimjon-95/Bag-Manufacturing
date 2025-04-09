@@ -1,6 +1,7 @@
 // Controller
 const ProductNorma = require("../model/productNormaSchema"); // Adjusted path
 const { Material } = require("../model/materialsModel");
+const imgbbApiKey = process.env.IMGBB_API_KEY;
 
 const createProductNorma = async (req, res) => {
   try {
@@ -11,12 +12,41 @@ const createProductNorma = async (req, res) => {
       materials,
       description,
       size,
-      uniqueCode,
-      image
+      uniqueCode
     } = req.body;
 
+    let imageUrl = null;
+    if (req.file) {
+      // Agar rasm yuklansa, uni imgBB ga jo‘natamiz
+      const formData = new FormData();
+      formData.append("image", req.file.buffer.toString("base64"));
+
+      const response = await axios.post(
+        `https://api.imgbb.com/1/upload?key=${imgbbApiKey}`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (response.data.success) {
+        imageUrl = response.data.data.url; // Muvaffaqiyatli yuklansa, rasm URL olinadi
+      } else {
+        return Response.error(res, "Rasmni imgBB ga yuklashda xatolik");
+      }
+    }
     // Validate all required fields
-    const requiredFields = { productName, category, color, size, uniqueCode, materials };
+    const requiredFields = {
+      productName,
+      category,
+      color,
+      size,
+      uniqueCode,
+      materials
+    };
+
     const missingFields = Object.entries(requiredFields)
       .filter(([_, value]) => !value)
       .map(([key]) => key);
@@ -64,7 +94,7 @@ const createProductNorma = async (req, res) => {
       description,
       size,
       uniqueCode,
-      image,
+      image: imageUrl,
     });
 
     const savedNorma = await newNorma.save();
@@ -119,3 +149,9 @@ const getAllProductNormas = async (req, res) => {
 };
 
 module.exports = { createProductNorma, getAllProductNormas };
+
+
+
+
+
+

@@ -4,7 +4,8 @@ const balanceSchema = new mongoose.Schema({
     balance: { type: Number, default: 0 },
 });
 
-module.exports = mongoose.model("balance", balanceSchema);
+const Balancs = mongoose.model("balance", balanceSchema);
+module.exports = Balancs;
 
 
 
