@@ -13,6 +13,7 @@ const WarehouseController = require("../controller/materialController");
 const validateMaterial = require("../validation/materialValidation");
 const validateWarehouse = require("../validation/warehouseValidation");
 const expenseController = require("../controller/expenseController");
+const balanceController = require("../controller/balance.controller");
 const getMonthlyWorkerSalaries = require("../controller/salaryController");
 const multer = require("multer");
 const IncomingProductController = require("../controller/IncomingProduct.controller");
@@ -22,6 +23,8 @@ const upload = multer({ storage: multer.memoryStorage() });
 const { createProductNorma, getAllProductNormas } = require("../controller/productNormaController");
 const { createProductEntry, getAllProductEntries } = require("../controller/productEntryController");
 const { createSale, getAllSales } = require("../controller/saleController");
+
+router.get("/balance", balanceController.getBalance);
 
 router.post("/admin/login", adminController.login);
 router.get("/admin/all", adminController.getAdmins);
