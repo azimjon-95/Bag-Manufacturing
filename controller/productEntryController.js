@@ -61,11 +61,15 @@ const createProductEntry = async (req, res) => {
       if (!materialStock || materialStock.quantity < requiredQuantity) {
         return res.status(400).json({
           state: false,
-          message: `${
-            material.name
-          } uchun yetarli zaxira yo‘q. Kerak: ${requiredQuantity}, Mavjud: ${
-            materialStock?.quantity || 0
-          }`,
+          message: `${material.name
+            } uchun yetarli zaxira yo‘q. Kerak: ${requiredQuantity}, Mavjud: ${materialStock?.quantity || 0
+            }`,
+          innerData: {
+            materialName: material.name,
+            requiredQuantity,
+            materialStockQuantity: materialStock?.quantity || 0,
+          }
+
         });
       }
 
