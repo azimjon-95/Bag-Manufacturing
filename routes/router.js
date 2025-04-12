@@ -43,6 +43,8 @@ router.delete("/workers/delete/:id", workerController.deleteWorker);
 // Attendance Routes
 router.post("/attendance/scan", validateAttendanceScan, AttendanceController.handleQRScan);
 router.post("/attendance/piecework", validatePieceWork, AttendanceController.addPieceWork);
+router.get("/attendance/todays", AttendanceController.getAttendanceTodays);
+router.get("/attendance/todaysPiecework", AttendanceController.getAttendanceTodaysPiecework);
 router.get("/attendance/:id", AttendanceController.getAttendanceById);
 
 // Company Routes

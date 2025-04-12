@@ -146,6 +146,75 @@ class AttendanceController {
             return Response.serverError(res, "Server xatosi: " + error.message);
         }
     }
+
+    // Get  attendance  all
+    static async getAttendanceAll(req, res) {
+        try {
+            const attendance = await Attendance.find();
+            if (!attendance) {
+                return Response.notFound(res, "Attendance topilmadi");
+            }
+            return Response.success(res, "Attendance topildi", attendance);
+        } catch (error) {
+            return Response.serverError(res, "Server xatosi: " + error.message);
+        }
+    }
+
+
+    static async getAttendanceTodays(req, res) {
+        try {
+            // Get the start and end of today
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Start of today
+            const tomorrow = new Date(today);
+            tomorrow.setDate(today.getDate() + 1); // Start of tomorrow
+
+            // Find attendance records for today
+            const attendance = await Attendance.find({
+                date: {
+                    $gte: today,
+                    $lt: tomorrow
+                }
+            });
+
+            if (!attendance || attendance.length === 0) {
+                return Response.notFound(res, "Bugungi attendance topilmadi");
+            }
+
+            return Response.success(res, "Bugungi attendance topildi", attendance);
+        } catch (error) {
+            return Response.serverError(res, "Server xatosi: " + error.message);
+        }
+    }
+
+
+
+    static async getAttendanceTodaysPiecework(req, res) {
+        try {
+            // Get the start and end of today
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Start of today
+            const tomorrow = new Date(today);
+            tomorrow.setDate(today.getDate() + 1); // Start of tomorrow
+
+            // Find attendance records for today with workType 'piecework'
+            const attendance = await Attendance.find({
+                date: {
+                    $gte: today,
+                    $lt: tomorrow
+                },
+                workType: 'piecework'
+            }); // Optionally populate workerId for worker details
+
+            if (!attendance || attendance.length === 0) {
+                return Response.notFound(res, "Bugungi piecework attendance topilmadi");
+            }
+
+            return Response.success(res, "Bugungi piecework attendance topildi", attendance);
+        } catch (error) {
+            return Response.serverError(res, "Server xatosi: " + error.message);
+        }
+    }
 }
 
 module.exports = AttendanceController;
