@@ -178,7 +178,7 @@ class AttendanceController {
             });
 
             if (!attendance || attendance.length === 0) {
-                return Response.notFound(res, "Bugungi attendance topilmadi");
+                return Response.notFound(res, "Bugungi attendance topilmadi", []);
             }
 
             return Response.success(res, "Bugungi attendance topildi", attendance);
@@ -207,7 +207,7 @@ class AttendanceController {
             }); // Optionally populate workerId for worker details
 
             if (!attendance || attendance.length === 0) {
-                return Response.notFound(res, "Bugungi piecework attendance topilmadi");
+                return Response.notFound(res, "Bugungi piecework attendance topilmadi", []);
             }
 
             return Response.success(res, "Bugungi piecework attendance topildi", attendance);
