@@ -17,10 +17,13 @@ const workerValidation = (req, res, next) => {
         type: "string",
         enum: ["daily", "hourly", "task"], // kunbay, soatbay, ishbay
       },
+      specialization: {
+        type: "string",
+      },
       rate: { type: "number", minimum: 0 },
       isActive: { type: "boolean" },
     },
-    required: ["fullname", "phone", "workType", "rate"],
+    required: ["fullname", "phone", "specialization", "workType", "rate"],
     additionalProperties: false,
     errorMessage: {
       required: {

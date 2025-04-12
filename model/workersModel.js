@@ -9,6 +9,10 @@ const WorkerSchema = new mongoose.Schema(
       enum: ["hourly", "daily", "piecework"],
       required: true,
     },
+    specialization: {
+      type: String,
+      required: true,
+    },
     workingHours: {
       start: { type: String },
       end: { type: String },
