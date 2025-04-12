@@ -15,7 +15,7 @@ const workerValidation = (req, res, next) => {
       },
       workType: {
         type: "string",
-        enum: ["daily", "hourly", "task"], // kunbay, soatbay, ishbay
+        enum: ["daily", "hourly", "piecework"], // kunbay, soatbay, ishbay
       },
       specialization: {
         type: "string",
