@@ -36,13 +36,37 @@ const materialSchema = {
       nullable: true,
     },
     supplier: {
-      type: "string",
-      nullable: true,
+      type: "object",
+      properties: {
+        fullName: {
+          type: "string",
+          minLength: 1,
+          errorMessage: "Taminotchi ismi bo'sh bo'lishi mumkin emas",
+        },
+        phoneNumber: {
+          type: "string",
+          minLength: 1,
+          errorMessage: "Telefon raqami bo'sh bo'lishi mumkin emas",
+        },
+        address: {
+          type: "string",
+          nullable: true,
+        },
+      },
+      required: ["fullName", "phoneNumber"],
+      additionalProperties: false,
+      errorMessage: {
+        required: {
+          fullName: "Taminotchi ismi majburiy",
+          phoneNumber: "Telefon raqami majburiy",
+        },
+        additionalProperties: "Qo‘shimcha xususiyatlarga ruxsat berilmaydi (supplier)",
+      },
     },
     receivedDate: {
       type: "string",
       format: "date-time",
-      nullable: true,
+      nullable: true, // Still nullable to allow explicit null, but default in Mongoose ensures a value
     },
     warehouseId: {
       type: "string",
@@ -50,7 +74,7 @@ const materialSchema = {
       errorMessage: "warehouseId noto‘g‘ri formatda (ObjectId bo‘lishi kerak)",
     },
   },
-  required: ["name", "unit", "quantity", "price", "warehouseId"],
+  required: ["name", "unit", "quantity", "price", "supplier", "warehouseId"],
   additionalProperties: false,
   errorMessage: {
     required: {
@@ -58,6 +82,7 @@ const materialSchema = {
       unit: "Unit majburiy",
       quantity: "Quantity majburiy",
       price: "Narx majburiy",
+      supplier: "Taminotchi ma'lumotlari majburiy",
       warehouseId: "WarehouseId majburiy",
     },
     additionalProperties: "Qo‘shimcha xususiyatlarga ruxsat berilmaydi",
@@ -69,8 +94,8 @@ const validateMaterial = (req, res, next) => {
   const valid = validate(req.body);
 
   if (!valid) {
-    const errors = validate.errors.map(err => ({
-      field: err.instancePath.replace('/', ''),
+    const errors = validate.errors.map((err) => ({
+      field: err.instancePath.replace("/", "") || err.params.missingProperty || "unknown",
       message: err.message,
     }));
     return Response.error(res, "Validatsiya xatosi", errors);
@@ -80,5 +105,3 @@ const validateMaterial = (req, res, next) => {
 };
 
 module.exports = validateMaterial;
-
-
