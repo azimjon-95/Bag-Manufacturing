@@ -14,9 +14,23 @@ const IncomingProductSchema = new mongoose.Schema(
             trim: true,
         },
         supplier: {
-            type: String,
-            required: true,
-            trim: true, // Name of the external supplier
+            type: {
+                fullName: { // ismi (name of the supplier)
+                    type: String,
+                    trim: true,
+                    required: true,
+                },
+                phoneNumber: { // telefon raqami
+                    type: String,
+                    trim: true,
+                    required: true,
+                },
+                address: { // manzil (address)
+                    type: String,
+                    trim: true,
+                },
+            },
+            required: true, // Supplier object is required
         },
         quantity: {
             type: Number,
