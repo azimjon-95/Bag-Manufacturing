@@ -67,7 +67,9 @@ router.get(
   "/attendance/todaysPiecework",
   AttendanceController.getAttendanceTodaysPiecework
 );
+router.get("/attendance/all", AttendanceController.getAttendanceAll);
 router.get("/attendance/:id", AttendanceController.getAttendanceById);
+// all attendance
 
 // Company Routes
 router.get("/company/all", CompanyController.getCompanies);
