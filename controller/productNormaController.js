@@ -1,23 +1,18 @@
-// Controller
-const ProductNorma = require("../model/productNormaSchema"); // Adjusted path
+const ProductNorma = require("../model/productNormaSchema");
 const { Material } = require("../model/materialsModel");
 const imgbbApiKey = process.env.IMGBB_API_KEY;
+const axios = require("axios");
+const FormData = require("form-data");
+const Response = require("../utils/response");
 
 const createProductNorma = async (req, res) => {
   try {
-    const {
-      productName,
-      category,
-      color,
-      materials,
-      description,
-      size,
-      uniqueCode
-    } = req.body;
+    const { productName, category, color, description, size, uniqueCode } =
+      req.body;
+    let materials = JSON.parse(req.body.materials);
 
     let imageUrl = null;
     if (req.file) {
-      // Agar rasm yuklansa, uni imgBB ga jo‘natamiz
       const formData = new FormData();
       formData.append("image", req.file.buffer.toString("base64"));
 
@@ -32,11 +27,12 @@ const createProductNorma = async (req, res) => {
       );
 
       if (response.data.success) {
-        imageUrl = response.data.data.url; // Muvaffaqiyatli yuklansa, rasm URL olinadi
+        imageUrl = response.data.data.url;
       } else {
         return Response.error(res, "Rasmni imgBB ga yuklashda xatolik");
       }
     }
+
     // Validate all required fields
     const requiredFields = {
       productName,
@@ -44,7 +40,7 @@ const createProductNorma = async (req, res) => {
       color,
       size,
       uniqueCode,
-      materials
+      materials,
     };
 
     const missingFields = Object.entries(requiredFields)
@@ -52,18 +48,15 @@ const createProductNorma = async (req, res) => {
       .map(([key]) => key);
 
     if (missingFields.length > 0) {
-      return res.status(400).json({
-        state: false,
-        message: `Quyidagi majburiy maydonlar kiritilmadi: ${missingFields.join(", ")}`,
-      });
+      return Response.error(
+        res,
+        `Quyidagi majburiy maydonlar kiritilmadi: ${missingFields.join(", ")}`
+      );
     }
 
     // Validate materials array
     if (!Array.isArray(materials) || materials.length === 0) {
-      return res.status(400).json({
-        state: false,
-        message: "Materiallar ro‘yxati bo‘sh bo‘lmasligi kerak",
-      });
+      return Response.error(res, "Materiallar massivi kiritilmadi");
     }
 
     // Validate materials existence and quantity in parallel
@@ -77,12 +70,14 @@ const createProductNorma = async (req, res) => {
       })
     );
 
-    const invalidMaterials = materialChecks.filter(check => !check.valid);
+    const invalidMaterials = materialChecks.filter((check) => !check.valid);
     if (invalidMaterials.length > 0) {
-      return res.status(400).json({
-        state: false,
-        message: `Noto‘g‘ri materiallar: ${invalidMaterials.map(m => m.id).join(", ")}`,
-      });
+      return Response.error(
+        res,
+        `Quyidagi materiallar topilmadi: ${invalidMaterials
+          .map((check) => check.id)
+          .join(", ")}`
+      );
     }
 
     // Create new product norma
@@ -99,13 +94,8 @@ const createProductNorma = async (req, res) => {
 
     const savedNorma = await newNorma.save();
 
-    return res.status(201).json({
-      state: true,
-      message: "Norma muvaffaqiyatli yaratildi",
-      innerData: savedNorma,
-    });
+    return Response.success(res, "Norma yaratildi", savedNorma);
   } catch (error) {
-    // Handle unique code duplicate error specifically
     if (error.code === 11000) {
       return res.status(400).json({
         state: false,
@@ -128,30 +118,82 @@ const getAllProductNormas = async (req, res) => {
       .lean();
 
     if (!normas.length) {
-      return res.status(404).json({
-        state: false,
-        message: "Normalar topilmadi",
-      });
+      return Response.notFound(res, "Normalar topilmadi");
     }
 
-    return res.status(200).json({
-      state: true,
-      message: "Barcha normalar",
-      innerData: normas,
-    });
+    return Response.success(res, "Normalar muvaffaqiyatli topildi", normas);
+  } catch (error) {
+    return Response.serverError(
+      res,
+      "Server xatosi: Normalar topilmadi",
+      error.message
+    );
+  }
+};
+
+const getProductNormaById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const norma = await ProductNorma.findById(id)
+      .populate("materials.materialId", "name unit price")
+      .lean();
+
+    if (!norma) {
+      return Response.notFound(res, "Norma topilmadi");
+    }
+
+    return Response.success(res, "Norma muvaffaqiyatli topildi", norma);
+  } catch (error) {
+    return Response.serverError(
+      res,
+      "Server xatosi: Norma topilmadi",
+      error.message
+    );
+  }
+};
+const updateProductNorma = async (req, res) => {
+  try {
+    const { id } = req.params;
+    let updated = await ProductNorma.findByIdAndUpdate(
+      id,
+      { ...req.body },
+      { new: true }
+    );
+    if (!updated) return Response.error(res, "Norma yangilanmadi");
+
+    return Response.success(res, "Norma muvaffaqiyatli yangilandi", updated);
   } catch (error) {
     return res.status(500).json({
       state: false,
-      message: "Server xatosi",
+      message: "Server xatosi: Norma yangilanmadi",
       error: error.message,
     });
   }
 };
 
-module.exports = { createProductNorma, getAllProductNormas };
+const deleteProductNorma = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const norma = await ProductNorma.findByIdAndDelete(id);
 
+    if (!norma) {
+      return Response.notFound(res, "Norma topilmadi");
+    }
 
+    return Response.success(res, "Norma muvaffaqiyatli o‘chirildi", norma);
+  } catch (error) {
+    return Response.serverError(
+      res,
+      "Server xatosi: Norma o‘chirilmadi",
+      error.message
+    );
+  }
+};
 
-
-
-
+module.exports = {
+  createProductNorma,
+  getAllProductNormas,
+  getProductNormaById,
+  updateProductNorma,
+  deleteProductNorma,
+};

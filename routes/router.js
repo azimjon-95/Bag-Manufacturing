@@ -1,7 +1,10 @@
 const router = require("express").Router();
 const workerController = require("../controller/workerController");
 const workerValidation = require("../validation/WorkerValidation");
-const { validateAttendanceScan, validatePieceWork } = require("../validation/attendanceValidation");
+const {
+  validateAttendanceScan,
+  validatePieceWork,
+} = require("../validation/attendanceValidation");
 const adminController = require("../controller/adminController");
 const adminValidation = require("../validation/adminValidation");
 const AttendanceController = require("../controller/attendanceCtrl");
@@ -19,9 +22,17 @@ const multer = require("multer");
 const IncomingProductController = require("../controller/IncomingProduct.controller");
 const upload = multer({ storage: multer.memoryStorage() });
 
-
-const { createProductNorma, getAllProductNormas } = require("../controller/productNormaController");
-const { createProductEntry, getAllProductEntries } = require("../controller/productEntryController");
+const {
+  createProductNorma,
+  getAllProductNormas,
+  updateProductNorma,
+  deleteProductNorma,
+  getProductNormaById,
+} = require("../controller/productNormaController");
+const {
+  createProductEntry,
+  getAllProductEntries,
+} = require("../controller/productEntryController");
 const { createSale, getAllSales } = require("../controller/saleController");
 
 router.get("/balance", balanceController.getBalance);
@@ -41,15 +52,30 @@ router.put("/workers/status/:id", workerController.changeStatus);
 router.delete("/workers/delete/:id", workerController.deleteWorker);
 
 // Attendance Routes
-router.post("/attendance/scan", validateAttendanceScan, AttendanceController.handleQRScan);
-router.post("/attendance/piecework", validatePieceWork, AttendanceController.addPieceWork);
+router.post(
+  "/attendance/scan",
+  validateAttendanceScan,
+  AttendanceController.handleQRScan
+);
+router.post(
+  "/attendance/piecework",
+  validatePieceWork,
+  AttendanceController.addPieceWork
+);
 router.get("/attendance/todays", AttendanceController.getAttendanceTodays);
-router.get("/attendance/todaysPiecework", AttendanceController.getAttendanceTodaysPiecework);
+router.get(
+  "/attendance/todaysPiecework",
+  AttendanceController.getAttendanceTodaysPiecework
+);
 router.get("/attendance/:id", AttendanceController.getAttendanceById);
 
 // Company Routes
 router.get("/company/all", CompanyController.getCompanies);
-router.post("/company/create", validateCompany, CompanyController.createOrUpdateCompany);
+router.post(
+  "/company/create",
+  validateCompany,
+  CompanyController.createOrUpdateCompany
+);
 router.delete("/company/delete/:id", CompanyController.deleteCompany);
 
 // Piece Routes
@@ -60,18 +86,37 @@ router.put("/piece/:id", pieceController.updatePiece);
 router.delete("/piece/:id", pieceController.deletePiece);
 
 // Warehouse routes
-router.post("/warehouses", validateWarehouse, WarehouseController.createWarehouse);
+router.post(
+  "/warehouses",
+  validateWarehouse,
+  WarehouseController.createWarehouse
+);
 router.get("/warehouses", WarehouseController.getAllWarehouses);
 router.get("/warehouses/:id", WarehouseController.getWarehouseById);
-router.put("/warehouses/:id", validateWarehouse, WarehouseController.updateWarehouse);
+router.put(
+  "/warehouses/:id",
+  validateWarehouse,
+  WarehouseController.updateWarehouse
+);
 router.delete("/warehouses/:id", WarehouseController.deleteWarehouse);
 
 // Material routes
-router.post("/warehouses/materials", validateMaterial, WarehouseController.addMaterial);
-router.put("/materials/:materialId", validateMaterial, WarehouseController.updateMaterial);
+router.post(
+  "/warehouses/materials",
+  validateMaterial,
+  WarehouseController.addMaterial
+);
+router.put(
+  "/materials/:materialId",
+  validateMaterial,
+  WarehouseController.updateMaterial
+);
 router.delete("/materials/:materialId", WarehouseController.deleteMaterial);
 router.get("/materials/:materialId", WarehouseController.getMaterial);
-router.get("/warehouses/:id/materials", WarehouseController.getMaterialsByWarehouseId);
+router.get(
+  "/warehouses/:id/materials",
+  WarehouseController.getMaterialsByWarehouseId
+);
 router.get("/material-all", WarehouseController.getAllMaterials);
 
 // Expenses
@@ -81,11 +126,17 @@ router.get("/expenses/:id", expenseController.getExpenseById);
 router.put("/expenses/:id", expenseController.updateExpense);
 router.delete("/expenses/:id", expenseController.deleteExpense);
 router.post("/expenses/period", expenseController.getExpensesByPeriod);
-router.get("/expenses/relevant/:relevantId", expenseController.getExpenseByRelevantId);
+router.get(
+  "/expenses/relevant/:relevantId",
+  expenseController.getExpenseByRelevantId
+);
 
 // Product Normas
 router.post("/product-normas", upload.single("image"), createProductNorma);
 router.get("/product-normas", getAllProductNormas);
+router.get("/product-normas/:id", getProductNormaById);
+router.put("/product-normas/:id", updateProductNorma);
+router.delete("/product-normas/:id", deleteProductNorma);
 
 // Product Entries
 router.post("/product-entries", createProductEntry);
@@ -99,17 +150,30 @@ router.post("/sales-create", createSale);
 router.get("/sales-all", getAllSales);
 
 // Incoming Products
-router.get("/incoming/product", IncomingProductController.getAllIncomingProducts);
-router.get("/incoming/product/:id", IncomingProductController.getIncomingProductById);
-router.post("/incoming/product", upload.single("image"), IncomingProductController.createIncomingProduct);
-router.put("/incoming/product/:id", upload.single("image"), IncomingProductController.updateIncomingProduct);
-router.delete("/incoming/product/:id", IncomingProductController.deleteIncomingProduct);
+router.get(
+  "/incoming/product",
+  IncomingProductController.getAllIncomingProducts
+);
+router.get(
+  "/incoming/product/:id",
+  IncomingProductController.getIncomingProductById
+);
+router.post(
+  "/incoming/product",
+  upload.single("image"),
+  IncomingProductController.createIncomingProduct
+);
+router.put(
+  "/incoming/product/:id",
+  upload.single("image"),
+  IncomingProductController.updateIncomingProduct
+);
+router.delete(
+  "/incoming/product/:id",
+  IncomingProductController.deleteIncomingProduct
+);
 
 module.exports = router;
-
-
-
-
 
 // const router = require("express").Router();
 // const workerController = require("../controller/workerController");
@@ -275,14 +339,11 @@ module.exports = router;
 // router.post("/sales-create", createSale);
 // router.get("/sales-all", getAllSales);
 
-
-
 // //==========================================================
 // router.get("/incoming/product", IncomingProductController.getAllIncomingProducts);
 // router.get("/incoming/product/:id", IncomingProductController.getIncomingProductById);
 // router.post("/incoming/product", upload.single("image"), IncomingProductController.createIncomingProduct);
 // router.put("/incoming/product/:id", upload.single("image"), IncomingProductController.updateIncomingProduct);
 // router.delete("/incoming/product/:id", IncomingProductController.deleteIncomingProduct);
-
 
 // module.exports = router;
