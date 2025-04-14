@@ -40,6 +40,10 @@ const {
   getMonthlyMaterialUsage,
 } = require("../controller/statisticController");
 
+// Dashboard Routes
+const dashboardController = require("../controller/dashboardController");
+router.get("/dashboard", dashboardController.getDashboardData);
+
 router.get("/balance", balanceController.getBalance);
 
 router.post("/admin/login", adminController.login);
