@@ -15,7 +15,6 @@ const ProductEntrySchema = new mongoose.Schema(
     quantity: {
       type: Number,
       required: true,
-      min: 1, // Kirim miqdori 1 dan kam bo‘lmasligi kerak
     },
   },
   { timestamps: true }

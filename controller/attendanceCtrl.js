@@ -174,7 +174,10 @@ class AttendanceController {
   static async getAttendanceAll(req, res) {
     try {
       // only fullname
-      const attendance = await Attendance.find().populate("workerId", "fullname");
+      const attendance = await Attendance.find().populate(
+        "workerId",
+        "fullname"
+      );
       if (!attendance) {
         return Response.notFound(res, "Attendance topilmadi");
       }

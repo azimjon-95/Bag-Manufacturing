@@ -17,9 +17,13 @@ const SaleSchema = new mongoose.Schema(
       required: true,
       min: 1,
     },
-    totalPrice: {
+    sale_price: {
       type: Number,
       required: true,
+      min: 0,
+    },
+    totalPrice: {
+      type: Number,
       min: 0,
     },
     customer: {
@@ -82,6 +86,12 @@ const SaleSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// avtomatik total price ni hisoblash
+SaleSchema.pre("save", function (next) {
+  this.totalPrice = this.sale_price * this.quantity;
+  next();
+});
+
 // Har bir saqlashdan oldin qarz va to'lov statusini hisoblash
 SaleSchema.pre("save", function (next) {
   const sale = this;
@@ -90,7 +100,7 @@ SaleSchema.pre("save", function (next) {
   if (sale.payment.paidAmount >= sale.totalPrice) {
     sale.payment.debtAmount = 0;
     sale.isFullyPaid = true;
-    sale.debtHistory = []; // Agar to'liq to'langan bo'lsa, tarix shart emas
+    // sale.debtHistory = []; // Agar to'liq to'langan bo'lsa, tarix shart emas
   } else {
     sale.payment.debtAmount = sale.totalPrice - sale.payment.paidAmount;
     if (sale.payment.paidAmount > 0 && sale.debtHistory.length === 0) {
