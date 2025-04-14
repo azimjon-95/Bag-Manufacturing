@@ -38,6 +38,7 @@ const { createSale, getAllSales } = require("../controller/saleController");
 const {
   getMonthlyEntries,
   getMonthlyMaterialUsage,
+  getMonthlySales,
 } = require("../controller/statisticController");
 
 // Dashboard Routes
@@ -187,5 +188,6 @@ router.delete(
 // statistics
 router.get("/statistics", getMonthlyEntries);
 router.get("/statistics/materials", getMonthlyMaterialUsage);
+router.get("/statistics/sales", getMonthlySales);
 
 module.exports = router;

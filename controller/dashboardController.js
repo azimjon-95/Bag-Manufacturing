@@ -65,7 +65,7 @@ class DashboardController {
         profit: profit,
       };
 
-      return response.success(res, "Balans topildi", data);
+      return response.success(res, "Dashboard malumotlari", data);
     } catch (error) {
       return response.serverError(res, "Serverda xatolik: " + error.message);
     }

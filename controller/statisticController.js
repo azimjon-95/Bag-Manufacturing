@@ -1,5 +1,6 @@
 const ProductEntry = require("../model/ProductEntrySchema");
 const response = require("../utils/response");
+const salesModel = require("../model/saleSchema");
 const getMonthlyEntries = async (req, res) => {
   try {
     // Joriy oyning boshlanishi va oxirini hisoblash
@@ -107,7 +108,58 @@ const getMonthlyMaterialUsage = async (req, res) => {
   }
 };
 
+// get monthly sales
+const getMonthlySales = async (req, res) => {
+  try {
+    // Joriy oyning boshlanishi va oxirini hisoblash
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999
+    );
+    // Joriy oy uchun sotuvlarni olish aggregate
+    const sales = await salesModel.aggregate([
+      {
+        $match: {
+          createdAt: {
+            $gte: startOfMonth,
+            $lte: endOfMonth,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
+          },
+          totalSales: { $sum: "$totalPrice" },
+        },
+      },
+    ]);
+
+    // natijani formatlash
+    const result = sales.map((sale) => ({
+      date: sale._id,
+      totalSales: sale.totalSales,
+    }));
+
+    if (!result.length)
+      return response.notFound(res, "Joriy oyda sotuvlar topilmadi");
+    return response.success(res, "Joriy oyda sotuvlar", result);
+  } catch (error) {
+    console.error(error);
+    return response.serverError(res, "Serverda xatolik yuz berdi");
+  }
+};
+
 module.exports = {
   getMonthlyEntries,
   getMonthlyMaterialUsage,
+  getMonthlySales,
 };
