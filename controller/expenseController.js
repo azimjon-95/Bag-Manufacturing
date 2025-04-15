@@ -3,21 +3,10 @@ const Expense = require("../model/expense");
 const Balance = require("../model/balance"); // Add Balance model
 const response = require("../utils/response");
 const moment = require("moment");
+const Workers = require("../model/workersModel");
+const mongoose = require("mongoose");
 
 class ExpenseController {
-  // Helper method to update balance
-  async updateBalance(amount, type) {
-    const balanceDoc = await Balance.findOne() || new Balance();
-    if (type === "harajat") {
-      balanceDoc.balance -= amount;
-    } else if (type === "Kirim") {
-      balanceDoc.balance += amount;
-    }
-    balanceDoc.lastUpdated = new Date();
-    return await balanceDoc.save();
-  }
-
-  //getExpenseById
   async getExpenseById(req, res) {
     try {
       const expense = await Expense.findById(req.params.id);
@@ -29,53 +18,134 @@ class ExpenseController {
       response.serverError(res, error.message);
     }
   }
+  // async createExpense(req, res) {
+  //   try {
+  //     let data = req.body;
+  //     let newExpence = await Expense.create(data);
+  //     if (!newExpence) return response.error(res, "Xarajat qo‘shilmadi");
+  //     console.log("newExpence", newExpence);
 
-  // Yangi expense qo'shish
+  //     // update
+  //     let mainBalance = null;
+  //     const currentBalance = await Balance.findOne();
+  //     if (!currentBalance) {
+  //       let newMainBalance = await Balance.create({ balance: 0 });
+  //       mainBalance = newMainBalance.balance;
+  //       return response.error(res, "Balansda yetarli mablag' yoq");
+  //     } else {
+  //       mainBalance = currentBalance.balance;
+  //     }
+  //     if (newExpence.amount > mainBalance) {
+  //       return response.error(res, "Balansda yetarli mablag' yoq");
+  //     }
+
+  //     currentBalance.balance -= newExpence.amount;
+  //     await currentBalance.save();
+
+  //     if (req.body.category === "Avans" || req.body.category === "Ish haqi") {
+  //       const worker = await Workers.findById(req.body.relevantId);
+  //       if (!worker) {
+  //         return response.error(res, "Worker not found");
+  //       }
+  //       worker.balans -= newExpence.amount;
+  //       await worker.save();
+  //     }
+  //     response.success(res, "Xarajat qo'shildi", newExpence);
+  //   } catch (error) {
+  //     if (error.name === "ValidationError") {
+  //       let xatoXabari = "Xarajatni saqlashda xatolik yuz berdi: ";
+  //       for (let field in error.errors) {
+  //         xatoXabari +=
+  //           error.errors[field].kind === "enum"
+  //             ? `${field} uchun kiritilgan qiymat noto‘g‘ri`
+  //             : error.errors[field].message;
+  //       }
+  //       return response.error(res, xatoXabari);
+  //     }
+  //     return response.error(res, error.message);
+  //   }
+  // }
+
+  // Barcha expenselarni olish with balance
+
   async createExpense(req, res) {
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
-      let io = req.app.get("socket");
-      const newExpense = new Expense(req.body);
+      let data = req.body;
 
-      // Check if sufficient balance for outgoing expense
-      if (newExpense.type === "harajat") {
-        const currentBalance = await Balance.findOne();
-        if (!currentBalance || currentBalance.balance < newExpense.amount) {
-          await session.abortTransaction();
-          return response.error(res, "Insufficient balance");
-        }
+      // 1. Xarajatni yaratish
+      const newExpence = await Expense.create([data], { session });
+      if (!newExpence || newExpence.length === 0) {
+        await session.abortTransaction();
+        return response.error(res, "Xarajat qo‘shilmadi");
       }
 
-      const savedExpense = await newExpense.save({ session });
-      await this.updateBalance(savedExpense.amount, savedExpense.type);
+      const expenseDoc = newExpence[0]; // create([data]) array qaytaradi
 
+      // 2. Balansni olish va tekshirish
+      let currentBalance = await Balance.findOne().session(session);
+      if (!currentBalance) {
+        currentBalance = await Balance.create([{ balance: 0 }], { session });
+        await session.abortTransaction();
+        return response.error(res, "Balansda yetarli mablag' yo'q");
+      } else {
+        currentBalance = Array.isArray(currentBalance)
+          ? currentBalance[0]
+          : currentBalance;
+      }
+
+      if (expenseDoc.amount > currentBalance.balance) {
+        await session.abortTransaction();
+        return response.error(res, "Balansda yetarli mablag' yo'q");
+      }
+
+      // 3. Balansdan ayirish
+      currentBalance.balance -= expenseDoc.amount;
+      await currentBalance.save({ session });
+
+      // 4. Agar category Avans yoki Ish haqi bo‘lsa => xodim balansini ayirish
+      if (req.body.category === "Avans" || req.body.category === "Ish haqi") {
+        const worker = await Workers.findById(req.body.relevantId).session(
+          session
+        );
+        if (!worker) {
+          await session.abortTransaction();
+          return response.error(res, "Worker topilmadi");
+        }
+
+        worker.balans -= expenseDoc.amount;
+        await worker.save({ session });
+      }
+
+      // 5. Hammasi zo'r bo‘lsa, transactionni yakunlash
       await session.commitTransaction();
-      response.created(res, "Expense created successfully", savedExpense);
-      io.emit("newExpense", savedExpense);
+      session.endSession();
+
+      return response.success(res, "Xarajat qo'shildi", expenseDoc);
     } catch (error) {
       await session.abortTransaction();
+      session.endSession();
+
       if (error.name === "ValidationError") {
         let xatoXabari = "Xarajatni saqlashda xatolik yuz berdi: ";
         for (let field in error.errors) {
-          xatoXabari += error.errors[field].kind === "enum"
-            ? `${field} uchun kiritilgan qiymat noto‘g‘ri`
-            : error.errors[field].message;
+          xatoXabari +=
+            error.errors[field].kind === "enum"
+              ? `${field} uchun kiritilgan qiymat noto‘g‘ri`
+              : error.errors[field].message;
         }
         return response.error(res, xatoXabari);
       }
       return response.error(res, error.message);
-    } finally {
-      session.endSession();
     }
   }
 
-  // Barcha expenselarni olish with balance
   async getAllExpenses(req, res) {
     try {
       const [expenses, balance] = await Promise.all([
         Expense.find(),
-        Balance.findOne()
+        Balance.findOne(),
       ]);
 
       if (!expenses.length) {
@@ -84,82 +154,12 @@ class ExpenseController {
 
       response.success(res, "Expenses fetched successfully", {
         expenses,
-        currentBalance: balance?.balance || 0
+        currentBalance: balance?.balance || 0,
       });
     } catch (error) {
       response.serverError(res, error.message);
     }
   }
-
-  // Expense ni yangilash
-  async updateExpense(req, res) {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    try {
-      let io = req.app.get("socket");
-      const oldExpense = await Expense.findById(req.params.id);
-      if (!oldExpense) {
-        await session.abortTransaction();
-        return response.notFound(res, "Expense not found");
-      }
-
-      // Revert old balance
-      await this.updateBalance(-oldExpense.amount, oldExpense.type);
-
-      // Check new balance if it's an outgoing expense
-      if (req.body.type === "harajat" && req.body.amount) {
-        const currentBalance = await Balance.findOne();
-        if (currentBalance.balance < req.body.amount) {
-          await session.abortTransaction();
-          return response.error(res, "Insufficient balance");
-        }
-      }
-
-      const updatedExpense = await Expense.findByIdAndUpdate(
-        req.params.id,
-        req.body,
-        { new: true, session }
-      );
-
-      await this.updateBalance(updatedExpense.amount, updatedExpense.type);
-      await session.commitTransaction();
-
-      response.success(res, "Expense updated successfully", updatedExpense);
-      io.emit("newExpense", updatedExpense);
-    } catch (error) {
-      await session.abortTransaction();
-      response.error(res, error.message);
-    } finally {
-      session.endSession();
-    }
-  }
-
-  // Expense ni o'chirish
-  async deleteExpense(req, res) {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    try {
-      let io = req.app.get("socket");
-      const deletedExpense = await Expense.findById(req.params.id);
-      if (!deletedExpense) {
-        await session.abortTransaction();
-        return response.notFound(res, "Expense not found");
-      }
-
-      await Expense.findByIdAndDelete(req.params.id, { session });
-      await this.updateBalance(-deletedExpense.amount, deletedExpense.type);
-
-      await session.commitTransaction();
-      response.success(res, "Expense deleted successfully");
-      io.emit("newExpense", deletedExpense);
-    } catch (error) {
-      await session.abortTransaction();
-      response.serverError(res, error.message);
-    } finally {
-      session.endSession();
-    }
-  }
-
 
   // Other existing methods remain mostly the same, just adding balance info where needed
   async getExpensesByPeriod(req, res) {
@@ -169,7 +169,9 @@ class ExpenseController {
         return response.badRequest(res, "Start date and endDate are required");
       }
 
-      const startOfPeriod = moment(startDate, "YYYY-MM-DD").startOf("day").toDate();
+      const startOfPeriod = moment(startDate, "YYYY-MM-DD")
+        .startOf("day")
+        .toDate();
       const endOfPeriod = moment(endDate, "YYYY-MM-DD").endOf("day").toDate();
 
       if (startOfPeriod > endOfPeriod) {
@@ -209,7 +211,7 @@ class ExpenseController {
             },
           },
         ]),
-        Balance.findOne()
+        Balance.findOne(),
       ]);
 
       if (!results?.[0]?.all.length) {
@@ -245,8 +247,14 @@ class ExpenseController {
       const formattedStart = convertToLatin(formattedStartRaw);
       const formattedEnd = convertToLatin(formattedEndRaw);
 
-      const outgoingData = results[0].outgoing[0] || { totalAmount: 0, expenses: [] };
-      const incomeData = results[0].income[0] || { totalAmount: 0, expenses: [] };
+      const outgoingData = results[0].outgoing[0] || {
+        totalAmount: 0,
+        expenses: [],
+      };
+      const incomeData = results[0].income[0] || {
+        totalAmount: 0,
+        expenses: [],
+      };
 
       const responseData = {
         period: `${formattedStart} - ${formattedEnd}`,
@@ -255,10 +263,14 @@ class ExpenseController {
         totalOutgoing: outgoingData.totalAmount,
         incomeExpenses: incomeData.expenses,
         totalIncome: incomeData.totalAmount,
-        currentBalance: currentBalance?.balance || 0
+        currentBalance: currentBalance?.balance || 0,
       };
 
-      return response.success(res, "Expenses fetched successfully", responseData);
+      return response.success(
+        res,
+        "Expenses fetched successfully",
+        responseData
+      );
     } catch (error) {
       return response.serverError(res, error.message);
     }

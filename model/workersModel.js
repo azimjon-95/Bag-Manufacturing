@@ -21,6 +21,7 @@ const WorkerSchema = new mongoose.Schema(
       hourly: { type: Number, default: 0 },
       daily: { type: Number, default: 0 },
     },
+    balans: { type: Number, default: 0 },
     isActive: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
   },

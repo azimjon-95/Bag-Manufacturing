@@ -135,8 +135,6 @@ router.get("/material-all", WarehouseController.getAllMaterials);
 router.post("/expenses/create", expenseController.createExpense);
 router.get("/expenses/all", expenseController.getAllExpenses);
 router.get("/expenses/:id", expenseController.getExpenseById);
-router.put("/expenses/:id", expenseController.updateExpense);
-router.delete("/expenses/:id", expenseController.deleteExpense);
 router.post("/expenses/period", expenseController.getExpensesByPeriod);
 router.get(
   "/expenses/relevant/:relevantId",
