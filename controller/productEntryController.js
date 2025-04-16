@@ -127,21 +127,95 @@ const createProductEntry = async (req, res) => {
 };
 
 // Barcha kirimlarni olish (ixtiyoriy)
+// const getAllProductEntries = async (req, res) => {
+//   try {
+//     // Fetch all entries with population
+//     const entries = await ProductEntry.find()
+//       .populate("productNormaId", "productName category")
+//       .populate("warehouseId", "name");
+
+//     if (!entries.length) {
+//       return res.status(404).json({
+//         state: false,
+//         message: "Kirimlar topilmadi",
+//       });
+//     }
+
+//     // Combine entries by productNormaId
+//     const combinedEntries = Object.values(
+//       entries.reduce((acc, entry) => {
+//         const productNormaId = entry?.productNormaId?._id.toString();
+
+//         if (!acc[productNormaId]) {
+//           acc[productNormaId] = { ...entry.toObject(), quantity: 0 };
+//         }
+
+//         acc[productNormaId].quantity += entry.quantity;
+//         return acc;
+//       }, {})
+//     );
+
+//     return res.status(200).json({
+//       state: true,
+//       message: "Barcha kirimlar",
+//       innerData: combinedEntries,
+//     });
+//   } catch (error) {
+//     return res.status(500).json({
+//       state: false,
+//       message: "Server xatosi",
+//       error: error.message,
+//     });
+//   }
+// };
+
 const getAllProductEntries = async (req, res) => {
   try {
+    // Fetch all entries with population
     const entries = await ProductEntry.find()
       .populate("productNormaId", "productName category")
       .populate("warehouseId", "name");
+
     if (!entries.length) {
       return res.status(404).json({
         state: false,
         message: "Kirimlar topilmadi",
       });
     }
+
+    // Combine entries by productNormaId
+    const combinedEntries = Object.values(
+      entries.reduce((acc, entry) => {
+        const productNormaId = entry.productNormaId?._id.toString();
+
+        if (!acc[productNormaId]) {
+          // Initialize with the full entry, including populated fields
+          acc[productNormaId] = {
+            ...entry.toObject(),
+            quantity: 0,
+          };
+        }
+
+        // Sum the quantity
+        acc[productNormaId].quantity += entry.quantity;
+
+        // Optional: Update other fields if needed (e.g., keep the latest entry's data)
+        // Example: If you want to keep the most recent entry's metadata
+        if (entry.createdAt > acc[productNormaId].createdAt) {
+          acc[productNormaId] = {
+            ...entry.toObject(),
+            quantity: acc[productNormaId].quantity, // Preserve the summed quantity
+          };
+        }
+
+        return acc;
+      }, {})
+    );
+
     return res.status(200).json({
       state: true,
       message: "Barcha kirimlar",
-      innerData: entries,
+      innerData: combinedEntries,
     });
   } catch (error) {
     return res.status(500).json({

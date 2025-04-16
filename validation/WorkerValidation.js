@@ -11,7 +11,8 @@ const workerValidation = (req, res, next) => {
       fullname: { type: "string", minLength: 2, maxLength: 50 },
       phone: {
         type: "string",
-        pattern: "^\\+998[0-9]{9}$", // +998 bilan boshlanadi, 9 ta raqam
+        // phone 9 ta raqam boladi
+        pattern: "^[0-9]{9}$",
       },
       workType: {
         type: "string",
@@ -20,23 +21,26 @@ const workerValidation = (req, res, next) => {
       specialization: {
         type: "string",
       },
-      rate: { type: "number", minimum: 0 },
-      isActive: { type: "boolean" },
+      rates: {
+        type: "object",
+        properties: {
+          hourly: { type: "number", default: 0 },
+          daily: { type: "number", default: 0 },
+        },
+      },
     },
-    required: ["fullname", "phone", "specialization", "workType", "rate"],
+    required: ["fullname", "phone", "specialization", "workType"],
     additionalProperties: false,
     errorMessage: {
       required: {
         fullname: "Ism-familiya kiritish shart",
         phone: "Telefon raqam kiritish shart",
         workType: "Ish turi kiritish shart",
-        rate: "Stavka kiritish shart",
       },
       properties: {
         fullname: "Ism-familiya 2-50 ta belgi oralig‘ida bo‘lishi kerak",
-        phone: "Telefon raqam noto‘g‘ri formatda, masalan: +998901234567",
+        phone: "Telefon raqam noto‘g‘ri formatda, masalan: 901234567",
         workType: "Ish turi faqat daily, hourly yoki task bo‘lishi mumkin",
-        rate: "Stavka 0 dan kam bo‘lmasligi kerak",
       },
     },
   };
