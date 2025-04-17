@@ -5,7 +5,10 @@ const SaleSchema = new mongoose.Schema(
     productNormaId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "ProductNorma",
-      required: true,
+    },
+    productId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "IncomingProduct",
     },
     warehouseId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -116,27 +119,19 @@ SaleSchema.pre("save", function (next) {
 
 // Qarzni qisman to'lash uchun metod
 SaleSchema.methods.addPayment = async function (amount) {
-  const sale = this;
-
-  if (sale.isFullyPaid) {
-    throw new Error("Bu sotuv allaqachon to'liq to'langan!");
+  if (amount <= 0) {
+    throw new Error("To'langan summa musbat bo'lishi kerak");
   }
 
-  sale.payment.paidAmount += amount;
-  sale.payment.debtAmount = sale.totalPrice - sale.payment.paidAmount;
+  this.payment.paidAmount = (this.payment.paidAmount || 0) + amount;
+  this.payment.debtAmount = (this.payment.debtAmount || 0) - amount;
 
-  if (sale.payment.debtAmount <= 0) {
-    sale.payment.debtAmount = 0;
-    sale.isFullyPaid = true;
-  } else {
-    sale.debtHistory.push({
-      paidAmount: amount,
-      remainingDebt: sale.payment.debtAmount,
-    });
+  if (this.payment.debtAmount <= 0) {
+    this.payment.debtAmount = 0;
+    this.isFullyPaid = true;
   }
 
-  await sale.save();
-  return sale;
+  return this.save();
 };
 
 module.exports = mongoose.model("Sale", SaleSchema);

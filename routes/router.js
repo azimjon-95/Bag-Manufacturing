@@ -33,7 +33,12 @@ const {
   createProductEntry,
   getAllProductEntries,
 } = require("../controller/productEntryController");
-const { createSale, getAllSales } = require("../controller/saleController");
+const {
+  createSale,
+  getAllSales,
+  getDebtors,
+  payDebt,
+} = require("../controller/saleController");
 
 const {
   getMonthlyEntries,
@@ -158,6 +163,8 @@ router.post("/salary/monthly", getMonthlyWorkerSalaries);
 // Sales
 router.post("/sales-create", createSale);
 router.get("/sales-all", getAllSales);
+router.get("/sales-debtors", getDebtors);
+router.post("/sales-pay-debt", payDebt);
 
 // Incoming Products
 router.get(
