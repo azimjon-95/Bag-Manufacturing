@@ -10,8 +10,16 @@ const MaterialSchema = new mongoose.Schema(
     },
     unit: {
       type: String,
-      enum: ["kg", "piece", "meter", "liter", "roll"],
+      enum: ["kg", "piece", "meter", "liter", "roll", "package"],
       required: true,
+    },
+    inPackage: {
+      type: Number,
+      default: 0,
+    },
+    totalPackageIn: {
+      type: Number,
+      default: 0,
     },
     quantity: {
       type: Number,
@@ -32,17 +40,20 @@ const MaterialSchema = new mongoose.Schema(
     },
     supplier: {
       type: {
-        fullName: { // ismi (name of the supplier)
+        fullName: {
+          // ismi (name of the supplier)
           type: String,
           trim: true,
           required: true,
         },
-        phoneNumber: { // telefon raqami
+        phoneNumber: {
+          // telefon raqami
           type: String,
           trim: true,
           required: true,
         },
-        address: { // manzil (address)
+        address: {
+          // manzil (address)
           type: String,
           trim: true,
         },
@@ -62,6 +73,14 @@ const MaterialSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// saqlashdan avval totalPackageIn ni o'zgartirish kerak
+MaterialSchema.pre("save", function (next) {
+  if (this.inPackage > 0) {
+    this.totalPackageIn = this.quantity * this.inPackage;
+  }
+  next();
+});
 
 // models/Warehouse.js
 const WarehouseSchema = new mongoose.Schema(

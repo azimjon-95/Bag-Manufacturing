@@ -14,8 +14,14 @@ const materialSchema = {
     },
     unit: {
       type: "string",
-      enum: ["kg", "piece", "meter", "liter", "roll"],
-      errorMessage: "Unit faqat: 'kg', 'piece', 'meter', 'liter', 'roll' bo'lishi mumkin",
+      enum: ["kg", "piece", "meter", "liter", "roll", "package"],
+      errorMessage:
+        "Unit faqat: 'kg', 'piece', 'meter', 'liter', 'roll', 'package' bo'lishi mumkin",
+    },
+    inPackage: {
+      type: "number",
+      minimum: 0,
+      errorMessage: "InPackage 0 dan kichik bo'lmasligi kerak",
     },
     quantity: {
       type: "number",
@@ -60,7 +66,8 @@ const materialSchema = {
           fullName: "Taminotchi ismi majburiy",
           phoneNumber: "Telefon raqami majburiy",
         },
-        additionalProperties: "Qo‘shimcha xususiyatlarga ruxsat berilmaydi (supplier)",
+        additionalProperties:
+          "Qo‘shimcha xususiyatlarga ruxsat berilmaydi (supplier)",
       },
     },
     receivedDate: {
@@ -95,7 +102,10 @@ const validateMaterial = (req, res, next) => {
 
   if (!valid) {
     const errors = validate.errors.map((err) => ({
-      field: err.instancePath.replace("/", "") || err.params.missingProperty || "unknown",
+      field:
+        err.instancePath.replace("/", "") ||
+        err.params.missingProperty ||
+        "unknown",
       message: err.message,
     }));
     return Response.error(res, "Validatsiya xatosi", errors);
