@@ -28,6 +28,16 @@ const workerValidation = (req, res, next) => {
           daily: { type: "number", default: 0 },
         },
       },
+      salaryHistory: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            month: { type: "string" },
+            salary: { type: "number" },
+          },
+        },
+      },
     },
     required: ["fullname", "phone", "specialization", "workType"],
     additionalProperties: false,

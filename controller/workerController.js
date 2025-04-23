@@ -105,6 +105,39 @@ class WorkerController {
       response.serverError(res, err.message, err);
     }
   }
+
+  async giveSalary(req, res) {
+    try {
+      const { workerId, month, salary } = req.body;
+
+      if (!workerId || !month || !salary) {
+        return response.error(res, "Ishchi, oy va oylik miqdori majburiy");
+      }
+
+      const worker = await workersDB.findById(workerId);
+      if (!worker) {
+        return response.notFound(res, "Ishchi topilmadi");
+      }
+
+      // Yangi oylik yozuvi qo'shish
+      worker.salaryHistory.push({
+        month,
+        salary,
+        createdAt: new Date(),
+      });
+
+      // Balansdan pul yechish
+      worker.balans = (worker.balans || 0) - salary;
+
+      let result = await worker.save();
+      if (!result) return response.error(res, "Oylik berilmadi");
+
+      response.success(res, "Oylik berildi", worker);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Server xatosi" });
+    }
+  }
 }
 
 module.exports = new WorkerController();

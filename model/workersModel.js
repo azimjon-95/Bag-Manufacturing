@@ -24,6 +24,18 @@ const WorkerSchema = new mongoose.Schema(
     balans: { type: Number, default: 0 },
     isActive: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
+
+    // oylik tarixini yigib borish kerak
+    salaryHistory: {
+      type: [
+        {
+          month: { type: String },
+          salary: { type: Number },
+          createdAt: { type: Date, default: Date.now },
+        },
+      ],
+      default: [],
+    },
   },
   { timestamps: true }
 );
