@@ -65,6 +65,20 @@ const companySchema = {
         additionalProperties: "Faqat start va end kiritish mumkin",
       },
     },
+    logo: {
+      type: "string",
+      format: "data-url",
+      errorMessage: {
+        type: "Logo string bo'lishi kerak",
+        format: "Logo data-url formatida bo'lishi kerak",
+      },
+    },
+    quote_for_sale: {
+      type: "string",
+      errorMessage: {
+        type: "Mijozlar uchun qo'lim matni string bo'lishi kerak",
+      },
+    },
   },
   required: ["name"],
   additionalProperties: false,
