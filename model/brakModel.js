@@ -15,6 +15,10 @@ const BrakSchema = new mongoose.Schema(
       required: true,
     },
     reason: { type: String, required: true },
+    associated_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+    },
   },
   { timestamps: true }
 );

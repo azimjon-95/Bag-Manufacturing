@@ -13,42 +13,55 @@ const brakValidation = (req, res, next) => {
         minLength: 1,
         errorMessage: {
           type: "Nomi string bo'lishi kerak",
-          minLength: "Nomi bo'sh bo'lmasligi kerak",
+          minLength: "Nomi bo'sh bo'lishi mumkin emas",
         },
       },
       warehouseId: {
         type: "string",
-        format: "objectId",
         errorMessage: {
-          type: "OmborId string bo'lishi kerak",
-          format: "OmborId  objectId (mongoDB _id) formatida bo'lishi kerak",
+          type: "WarehouseId string bo'lishi kerak",
+          format: "WarehouseId noto'g'ri formatda",
         },
       },
       quantity: {
         type: "number",
         minimum: 1,
         errorMessage: {
-          type: "Miqdor raqam bo'lishi kerak",
-          minimum: "Miqdor 1 dan kam bo'lmasligi kerak",
+          type: "Miqdor son bo'lishi kerak",
+          minimum: "Miqdor 1 dan kam bo'lishi mumkin emas",
         },
       },
       type: {
         type: "string",
         enum: ["product", "material"],
         errorMessage: {
-          enum: "Tur faqat 'product' yoki 'material' bo'lishi mumkin",
+          enum: "Tur faqat 'product' yoki 'material' bo'lishi kerak",
         },
       },
       reason: {
         type: "string",
         minLength: 1,
         errorMessage: {
-          type: "Sababi string bo'lishi kerak",
-          minLength: "Sababi bo'sh bo'lmasligi kerak",
+          type: "Sabab string bo'lishi kerak",
+          minLength: "Sabab bo'sh bo'lishi mumkin emas",
+        },
+      },
+      associated_id: {
+        type: "string",
+        errorMessage: {
+          type: "AsosiyId string bo'lishi kerak",
+          format: "AsosiyId noto'g'ri formatda",
         },
       },
     },
-    required: ["name", "warehouseId", "quantity", "type", "reason"],
+    required: [
+      "name",
+      "warehouseId",
+      "quantity",
+      "type",
+      "reason",
+      "associated_id",
+    ],
     additionalProperties: false,
     errorMessage: {
       required: {
@@ -57,17 +70,20 @@ const brakValidation = (req, res, next) => {
         quantity: "Miqdor kiritish majburiy",
         type: "Tur kiritish majburiy",
         reason: "Sababi kiritish majburiy",
+        associated_id: "AsosiyId kiritish majburiy",
       },
       additionalProperties: "Qo'shimcha xususiyatlarga ruxsat berilmaydi",
     },
   };
+
   const validate = ajv.compile(brakSchema);
   const result = validate(req.body);
+
   if (!result) {
-    let errorField = validate.errors[0].instancePath.replace("/", "");
     let errorMessage = validate.errors[0].message;
-    return response.error(res, `${errorField} xato: ${errorMessage}`);
+    return response.error(res, `Xato: ${errorMessage}`);
   }
+
   next();
 };
 

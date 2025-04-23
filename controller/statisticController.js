@@ -111,7 +111,6 @@ const getMonthlyMaterialUsage = async (req, res) => {
 // get monthly sales
 const getMonthlySales = async (req, res) => {
   try {
-    // Joriy oyning boshlanishi va oxirini hisoblash
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(
@@ -123,35 +122,19 @@ const getMonthlySales = async (req, res) => {
       59,
       999
     );
-    // Joriy oy uchun sotuvlarni olish aggregate
-    const sales = await salesModel.aggregate([
-      {
-        $match: {
-          createdAt: {
-            $gte: startOfMonth,
-            $lte: endOfMonth,
-          },
-        },
-      },
-      {
-        $group: {
-          _id: {
-            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
-          },
-          totalSales: { $sum: "$totalPrice" },
-        },
-      },
-    ]);
 
-    // natijani formatlash
-    const result = sales.map((sale) => ({
-      date: sale._id,
-      totalSales: sale.totalSales,
-    }));
+    let sales = await salesModel
+      .find({
+        createdAt: {
+          $gte: startOfMonth,
+          $lte: endOfMonth,
+        },
+      })
+      .select(["productNormaId", "productId", "quantity"])
+      .populate("productNormaId", "productName category")
+      .populate("productId", "productName category");
 
-    if (!result.length)
-      return response.notFound(res, "Joriy oyda sotuvlar topilmadi");
-    return response.success(res, "Joriy oyda sotuvlar", result);
+    response.success(res, "Joriy oyning sotuvlari", sales);
   } catch (error) {
     console.error(error);
     return response.serverError(res, "Serverda xatolik yuz berdi");

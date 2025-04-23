@@ -50,6 +50,7 @@ const brakController = require("../controller/brakController");
 
 // Dashboard Routes
 const dashboardController = require("../controller/dashboardController");
+const brakValidation = require("../validation/brakValidation");
 
 router.get("/dashboard", dashboardController.getDashboardData);
 
@@ -201,6 +202,6 @@ router.get("/statistics/materials", getMonthlyMaterialUsage);
 router.get("/statistics/sales", getMonthlySales);
 
 // brak
-router.post("/brak-create", brakController.create);
+router.post("/brak-create", [brakValidation], brakController.create);
 router.get("/brak-all", brakController.getAll);
 module.exports = router;
