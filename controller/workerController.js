@@ -138,6 +138,31 @@ class WorkerController {
       res.status(500).json({ message: "Server xatosi" });
     }
   }
+
+  async getSalaries(req, res) {
+    try {
+      const { workerId } = req.query; // optional: agar faqat bitta ishchi uchun chiqarish kerak bo'lsa
+
+      let workers;
+
+      if (workerId) {
+        workers = await Worker.findById(workerId).select(
+          "fullname salaryHistory"
+        );
+        if (!workers) {
+          return res.status(404).json({ message: "Xodim topilmadi" });
+        }
+        return res.status(200).json({ worker: workers });
+      } else {
+        // Hammasini olish
+        workers = await Worker.find({}).select("fullname salaryHistory");
+        return res.status(200).json({ workers });
+      }
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Server xatosi" });
+    }
+  }
 }
 
 module.exports = new WorkerController();

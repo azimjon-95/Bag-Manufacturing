@@ -66,6 +66,7 @@ router.put("/workers/update/:id", workerController.updateWorker);
 router.put("/workers/status/:id", workerController.changeStatus);
 router.delete("/workers/delete/:id", workerController.deleteWorker);
 router.put("/workers/salary/:id", workerController.giveSalary);
+router.get("/workers/given-salaries", workerController.getSalaries);
 
 // Attendance Routes
 router.post(
