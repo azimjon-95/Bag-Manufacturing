@@ -46,8 +46,11 @@ const {
   getMonthlySales,
 } = require("../controller/statisticController");
 
+const brakController = require("../controller/brakController");
+
 // Dashboard Routes
 const dashboardController = require("../controller/dashboardController");
+
 router.get("/dashboard", dashboardController.getDashboardData);
 
 router.get("/balance", balanceController.getBalance);
@@ -197,4 +200,7 @@ router.get("/statistics", getMonthlyEntries);
 router.get("/statistics/materials", getMonthlyMaterialUsage);
 router.get("/statistics/sales", getMonthlySales);
 
+// brak
+router.post("/brak-create", brakController.create);
+router.get("/brak-all", brakController.getAll);
 module.exports = router;

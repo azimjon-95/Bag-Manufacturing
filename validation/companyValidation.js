@@ -67,7 +67,7 @@ const companySchema = {
     },
     logo: {
       type: "string",
-      format: "data-url",
+      format: "url",
       errorMessage: {
         type: "Logo string bo'lishi kerak",
         format: "Logo data-url formatida bo'lishi kerak",
