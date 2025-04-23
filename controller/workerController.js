@@ -134,8 +134,7 @@ class WorkerController {
 
       response.success(res, "Oylik berildi", worker);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Server xatosi" });
+      response.serverError(res, error.message, error);
     }
   }
 
@@ -146,21 +145,20 @@ class WorkerController {
       let workers;
 
       if (workerId) {
-        workers = await Worker.findById(workerId).select(
-          "fullname salaryHistory"
-        );
+        workers = await workersDB
+          .findById(workerId)
+          .select("fullname salaryHistory");
         if (!workers) {
-          return res.status(404).json({ message: "Xodim topilmadi" });
+          return response.notFound(res, "Ishchi topilmadi");
         }
-        return res.status(200).json({ worker: workers });
+        return response.success(res, "Oyliklar topildi", workers);
       } else {
         // Hammasini olish
-        workers = await Worker.find({}).select("fullname salaryHistory");
-        return res.status(200).json({ workers });
+        workers = await workersDB.find({}).select("fullname salaryHistory");
+        return response.success(res, "Oyliklar topildi", workers);
       }
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Server xatosi" });
+      response.serverError(res, error.message, error);
     }
   }
 }
