@@ -79,7 +79,7 @@ class IncomingProductController {
 
   async getAllIncomingProducts(req, res) {
     try {
-      const products = await IncomingProduct.find();
+      const products = await IncomingProduct.find().populate("supplier");
       if (!products.length)
         return Response.notFound(res, "Kirim mahsulotlar topilmadi");
       return Response.success(res, "Kirim mahsulotlar olindi", products);
