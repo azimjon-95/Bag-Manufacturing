@@ -103,7 +103,9 @@ class WarehouseController {
 
       const { yagonaId } = req.body;
       if (yagonaId) {
-        const existingMaterial = await Material.findOne({ yagonaId });
+        const existingMaterial = await Material.findOne({ yagonaId }).populate(
+          "supplier"
+        );
         if (existingMaterial)
           return Response.error(res, "Bunday noyob kodli material mavjud");
       }
@@ -169,7 +171,9 @@ class WarehouseController {
 
   async getMaterial(req, res) {
     try {
-      const material = await Material.findById(req.params.materialId);
+      const material = await Material.findById(req.params.materialId).populate(
+        "supplier"
+      );
       if (!material) {
         return Response.notFound(res, "Material topilmadi");
       }
@@ -194,7 +198,9 @@ class WarehouseController {
       }
 
       // Get all materials in this warehouse
-      const materials = await Material.find({ warehouseId });
+      const materials = await Material.find({ warehouseId }).populate(
+        "supplier"
+      );
 
       return Response.success(
         res,
@@ -235,11 +241,11 @@ class WarehouseController {
       // 4. Materiallarni ombor ID lari bo‘yicha filter qilish
       const rawMaterials = await Material.find({
         warehouseId: { $in: rawMaterialWarehouseIds },
-      });
+      }).populate("supplier");
 
       const finishedProducts = await Material.find({
         warehouseId: { $in: finishedProductWarehouseIds },
-      });
+      }).populate("supplier");
 
       // Agar hech qanday material topilmasa (ixtiyoriy tekshiruv)
       if (!rawMaterials.length && !finishedProducts.length) {

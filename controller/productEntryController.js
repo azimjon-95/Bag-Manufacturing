@@ -174,7 +174,7 @@ const createProductEntry = async (req, res) => {
       const materialStock = await Material.findOne({
         _id: material?._id,
         warehouseId: material?.warehouseId,
-      });
+      }).populate("supplier");
 
       if (!materialStock || materialStock.quantity < requiredQuantity) {
         const shortage = requiredQuantity - (materialStock?.quantity || 0);

@@ -42,33 +42,7 @@ const materialSchema = {
       nullable: true,
     },
     supplier: {
-      type: "object",
-      properties: {
-        fullName: {
-          type: "string",
-          minLength: 1,
-          errorMessage: "Taminotchi ismi bo'sh bo'lishi mumkin emas",
-        },
-        phoneNumber: {
-          type: "string",
-          minLength: 1,
-          errorMessage: "Telefon raqami bo'sh bo'lishi mumkin emas",
-        },
-        address: {
-          type: "string",
-          nullable: true,
-        },
-      },
-      required: ["fullName", "phoneNumber"],
-      additionalProperties: false,
-      errorMessage: {
-        required: {
-          fullName: "Taminotchi ismi majburiy",
-          phoneNumber: "Telefon raqami majburiy",
-        },
-        additionalProperties:
-          "Qo‘shimcha xususiyatlarga ruxsat berilmaydi (supplier)",
-      },
+      type: "string",
     },
     receivedDate: {
       type: "string",

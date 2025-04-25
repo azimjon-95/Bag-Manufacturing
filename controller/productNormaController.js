@@ -65,7 +65,9 @@ const createProductNorma = async (req, res) => {
         if (!item.materialId || !item.quantity || item.quantity <= 0) {
           return { valid: false, id: item.materialId };
         }
-        const material = await Material.findById(item.materialId);
+        const material = await Material.findById(item.materialId).populate(
+          "supplier"
+        );
         return { valid: !!material, id: item.materialId };
       })
     );

@@ -39,26 +39,9 @@ const MaterialSchema = new mongoose.Schema(
       // default: () => `MAT-${Math.random().toString(36).substr(2, 9)}`,
     },
     supplier: {
-      type: {
-        fullName: {
-          // ismi (name of the supplier)
-          type: String,
-          trim: true,
-          required: true,
-        },
-        phoneNumber: {
-          // telefon raqami
-          type: String,
-          trim: true,
-          required: true,
-        },
-        address: {
-          // manzil (address)
-          type: String,
-          trim: true,
-        },
-      },
-      required: true, // Supplier object is required
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Customers",
+      required: true,
     },
     receivedDate: {
       type: Date,

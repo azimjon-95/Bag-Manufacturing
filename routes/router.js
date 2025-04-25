@@ -51,6 +51,9 @@ const brakController = require("../controller/brakController");
 // Dashboard Routes
 const dashboardController = require("../controller/dashboardController");
 const brakValidation = require("../validation/brakValidation");
+const CustomerController = require("../controller/customerController");
+const customerValidation = require("../validation/customerValidation");
+const aktsverkaController = require("../controller/aktsverka");
 
 router.get("/dashboard", dashboardController.getDashboardData);
 
@@ -204,4 +207,20 @@ router.get("/statistics/sales", getMonthlySales);
 // brak
 router.post("/brak-create", [brakValidation], brakController.create);
 router.get("/brak-all", brakController.getAll);
+
+// customer
+router.get("/customers", CustomerController.getAllCustomers);
+router.post(
+  "/customers/create",
+  [customerValidation],
+  CustomerController.createCustomer
+);
+router.get("/customers/:id", CustomerController.getCustomerById);
+router.put("/customers/:id", CustomerController.updateCustomer);
+router.delete("/customers/:id", CustomerController.deleteCustomer);
+router.put("/customers/update-balans/:id", CustomerController.updateBalans);
+
+// aktsverkaController
+router.post("/dalolatnoma", aktsverkaController.getOne);
+
 module.exports = router;
