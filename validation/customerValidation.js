@@ -23,6 +23,10 @@ const customerValidation = (req, res, next) => {
         type: "string",
         errorMessage: "manzilni kiriting",
       },
+      type: {
+        type: "string",
+        enum: ["customer", "supplier"],
+      },
     },
     required: ["fullName", "phoneNumber", "address"],
     additionalProperties: false,
