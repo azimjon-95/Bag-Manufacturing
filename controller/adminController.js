@@ -30,27 +30,44 @@ class AdminController {
   async createAdmin(req, res) {
     try {
       let io = req.app.get("socket");
-      const { firstName, lastName, login, password } = req.body;
+      const { firstName, lastName, login, password, role, permissions } =
+        req.body;
 
       // Login takrorlanmasligini tekshirish
       const existingAdmin = await adminsDB.findOne({ login });
-      if (existingAdmin)
+      if (existingAdmin) {
         return response.error(res, "Bu login allaqachon mavjud");
+      }
 
+      // Ruxsatlarni tekshirish (agar kerak bo‘lsa)
+      if (!permissions || permissions.length === 0) {
+        return response.error(res, "Ruxsatlar tanlanmagan");
+      }
+
+      // Parolni shifrlash
       const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Adminni yaratish va ruxsatlar bilan saqlash
       const admin = await adminsDB.create({
         firstName,
         lastName,
         login,
+        role,
         password: hashedPassword,
+        permissions, // Ruxsatlarni saqlash
       });
 
+      // Adminni javobga tayyorlash
       const adminData = admin.toJSON();
       delete adminData.password; // Parolni javobdan olib tashlash
 
+      // Yangi admin qo‘shilganda socket orqali xabar yuborish
       io.emit("new_admin", adminData);
+
+      // Javob yuborish
       response.created(res, "Admin qo‘shildi", adminData);
     } catch (err) {
+      // Xatolik bo‘lsa server xatosi yuborish
       response.serverError(res, err.message, err);
     }
   }
@@ -71,7 +88,7 @@ class AdminController {
           return response.error(res, "Bu login allaqachon mavjud");
       }
 
-      const updateData = { firstName, lastName, login };
+      const updateData = { ...req.body };
       if (password) {
         updateData.password = await bcrypt.hash(password, 10);
       }

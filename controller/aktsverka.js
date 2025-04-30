@@ -8,7 +8,7 @@ const moment = require("moment");
 class AktsverkaController {
   async getOne(req, res) {
     try {
-      let { supplier_id, type, startDate, endDate } = req.body;
+      let { supplier_id, startDate, endDate } = req.body;
 
       // check supplier_id mongo _id
       let checkSupplier_id = mongoose.Types.ObjectId.isValid(supplier_id);
@@ -32,33 +32,31 @@ class AktsverkaController {
         };
       }
 
-      if (type === "supplier") {
-        let [supplier, supplier2] = await Promise.all([
-          Material.find({
+      let [supplier, supplier2] = await Promise.all([
+        Material.find({
+          supplier: supplier_id,
+          ...dateFilter,
+        }).populate("supplier"),
+        incomingModel
+          .find({
             supplier: supplier_id,
             ...dateFilter,
-          }).populate("supplier"),
-          incomingModel
-            .find({
-              supplier: supplier_id,
-              ...dateFilter,
-            })
-            .populate("supplier"),
-        ]);
-        result.incomingMaterials = supplier;
-        result.incomingProducts = supplier2;
-      }
-
-      if (type === "customer") {
-        let customersData = await saleSchema
-          .find({
-            "customer._id": supplier_id,
-            ...dateFilter,
           })
-          .populate("customer");
+          .populate("supplier"),
+      ]);
+      result.incomingMaterials = supplier;
+      result.incomingProducts = supplier2;
 
-        result.sales = customersData;
-      }
+      let customersData = await saleSchema
+        .find({
+          customer: supplier_id,
+          ...dateFilter,
+        })
+        .populate("customer")
+        .populate("products.productNormaId")
+        .populate("products.productId");
+
+      result.sales = customersData;
 
       if (
         !result.sales.length &&

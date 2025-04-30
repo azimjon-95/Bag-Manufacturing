@@ -67,13 +67,13 @@ router.put("/admin/update/:id", adminValidation, adminController.updateAdmin);
 router.delete("/admin/delete/:id", adminController.deleteAdmin);
 
 router.get("/workers/all", workerController.getWorkers);
+router.get("/workers/given-salaries", workerController.getSalaries);
 router.get("/workers/:id", workerController.getWorkerById);
 router.post("/workers/create", workerValidation, workerController.createWorker);
 router.put("/workers/update/:id", workerController.updateWorker);
 router.put("/workers/status/:id", workerController.changeStatus);
 router.delete("/workers/delete/:id", workerController.deleteWorker);
-router.put("/workers/salary/:id", workerController.giveSalary);
-router.get("/workers/given-salaries", workerController.getSalaries);
+router.put("/workers/salary/:workerId", workerController.giveSalary);
 
 // Attendance Routes
 router.post(
@@ -144,6 +144,10 @@ router.get(
   WarehouseController.getMaterialsByWarehouseId
 );
 router.get("/material-all", WarehouseController.getAllMaterials);
+router.get(
+  "/getSuppliersMaterials",
+  WarehouseController.getAllMaterialsBySupplier
+);
 
 // Expenses
 router.post("/expenses/create", expenseController.createExpense);
@@ -180,6 +184,12 @@ router.get(
   "/incoming/product",
   IncomingProductController.getAllIncomingProducts
 );
+
+router.get(
+  "/incoming/productsBySupplier",
+  IncomingProductController.getGroupedIncomingProducts
+);
+
 router.get(
   "/incoming/product/:id",
   IncomingProductController.getIncomingProductById

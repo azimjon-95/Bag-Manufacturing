@@ -4,46 +4,135 @@ let response = require("../utils/response");
 let ProductEntry = require("../model/ProductEntrySchema");
 let ImportedProducts = require("../model/incoming.model");
 
+// const createSale = async (req, res) => {
+//   try {
+//     const { productId, quantity, totalPrice } = req.body;
+
+//     // 1. Mahsulotni topish
+//     const [exactProduct, exactImportedProduct] = await Promise.all([
+//       ProductEntry.findById(productId),
+//       ImportedProducts.findById(productId),
+//     ]);
+
+//     if (!exactProduct && !exactImportedProduct) {
+//       return response.error(res, "Mahsulot topilmadi");
+//     }
+
+//     const product = exactProduct || exactImportedProduct;
+
+//     // 2. Mahsulot sonini tekshirish
+//     if (product.quantity < quantity) {
+//       return response.error(res, "Mahsulot soni yetarli emas");
+//     }
+
+//     // 3. Mahsulot sonini kamaytirish
+//     product.quantity -= quantity;
+//     await product.save();
+
+//     // 4. Sotuvni yaratish
+//     const newSale = await Sale.create({
+//       ...req.body,
+//       warehouseId: product.warehouseId,
+//       productNormaId: product.productNormaId,
+//       productId: product._id,
+//     });
+//     if (!newSale) {
+//       return response.error(res, "Sotishda xatolik");
+//     }
+
+//     // 5. Balansni yangilash
+//     await Balance.findOneAndUpdate(
+//       {},
+//       { $inc: { balance: totalPrice } }, // balansga qo'shish
+//       { upsert: true, new: true }
+//     );
+
+//     return response.created(
+//       res,
+//       "Sotuv muvaffaqiyatli amalga oshirildi",
+//       newSale
+//     );
+//   } catch (error) {
+//     return response.serverError(
+//       res,
+//       "Sotuvni yaratishda xatolik",
+//       error.message
+//     );
+//   }
+// };
+
 const createSale = async (req, res) => {
   try {
-    const { productId, quantity, totalPrice } = req.body;
+    const { products, customer, payment } = req.body; // products => array
 
-    // 1. Mahsulotni topish
-    const [exactProduct, exactImportedProduct] = await Promise.all([
-      ProductEntry.findById(productId),
-      ImportedProducts.findById(productId),
-    ]);
-
-    if (!exactProduct && !exactImportedProduct) {
-      return response.error(res, "Mahsulot topilmadi");
+    if (!products || !Array.isArray(products) || products.length === 0) {
+      return response.error(
+        res,
+        "Mahsulotlar ro'yxati bo'sh bo'lmasligi kerak"
+      );
     }
 
-    const product = exactProduct || exactImportedProduct;
+    // Mahsulotlarni topish
+    const productPromises = products.map(({ _id }) =>
+      Promise.all([ProductEntry.findById(_id), ImportedProducts.findById(_id)])
+    );
 
-    // 2. Mahsulot sonini tekshirish
-    if (product.quantity < quantity) {
-      return response.error(res, "Mahsulot soni yetarli emas");
+    const productResults = await Promise.all(productPromises);
+
+    const updatedProducts = [];
+
+    for (let i = 0; i < products.length; i++) {
+      const [exactProduct, exactImportedProduct] = productResults[i];
+      const productData = exactProduct || exactImportedProduct;
+
+      if (!productData) {
+        return response.error(
+          res,
+          `ID: ${products[i]._id} bo'yicha mahsulot topilmadi`
+        );
+      }
+
+      const requestedQuantity = products[i].quantity;
+
+      if (productData.quantity < requestedQuantity) {
+        return response.error(
+          res,
+          `Mahsulot yetarli emas: ${productData.name || "Noma'lum mahsulot"}`
+        );
+      }
+
+      // Mahsulot miqdorini kamaytirish
+      productData.quantity -= requestedQuantity;
+      await productData.save();
+
+      // Saqlash uchun tayyorlab olamiz
+      updatedProducts.push({
+        productNormaId: productData.productNormaId,
+        productId: productData._id,
+        warehouseId: productData.warehouseId,
+        quantity: requestedQuantity,
+        sale_price: products[i].sale_price, // frontenddan kelishi kerak
+      });
     }
 
-    // 3. Mahsulot sonini kamaytirish
-    product.quantity -= quantity;
-    await product.save();
+    let debtHistory = [{ paidAmount: payment.paidAmount }];
 
-    // 4. Sotuvni yaratish
+    // Sotuvni yaratish
     const newSale = await Sale.create({
-      ...req.body,
-      warehouseId: product.warehouseId,
-      productNormaId: product.productNormaId,
-      productId: product._id,
+      products: updatedProducts,
+      customer,
+      payment,
+      debtHistory,
     });
+
     if (!newSale) {
-      return response.error(res, "Sotishda xatolik");
+      return response.error(res, "Sotuvni yaratishda xatolik");
     }
 
-    // 5. Balansni yangilash
+    // Balansni yangilash
     await Balance.findOneAndUpdate(
       {},
-      { $inc: { balance: totalPrice } }, // balansga qo'shish
+      { $inc: { balance: newSale.totalPrice } },
       { upsert: true, new: true }
     );
 
@@ -61,26 +150,41 @@ const createSale = async (req, res) => {
   }
 };
 
-// Barcha sotuvlarni olish (ixtiyoriy)
 const getAllSales = async (req, res) => {
   try {
-    const sales = await Sale.find()
-      .populate("productNormaId", "productName category")
-      .populate("productId", "productName category");
-    // .populate("warehouseId", "name")
+    const sales = await Sale.find().populate([
+      {
+        path: "products.productNormaId",
+        select: "productName category",
+      },
+      {
+        path: "products.productId",
+        select: "productName category",
+      },
+      {
+        path: "customer",
+      },
+    ]);
     if (!sales.length) return response.notFound(res, "Sotuvlar topilmadi");
     return response.success(res, "Sotuvlar muvaffaqiyatli topildi", sales);
   } catch (error) {
-    response.serverError(res, "Sotuvni yaratishda xatolik", error.message);
+    response.serverError(res, "Sotuv tarixini olishda xatolik", error.message);
   }
 };
-
 //qarzdorlar
 const getDebtors = async (req, res) => {
   try {
-    const debtors = await Sale.find({ isFullyPaid: false })
-      .populate("productNormaId", "productName category")
-      .populate("warehouseId", "name");
+    // .populate("productNormaId", "productName category")
+    // .populate("warehouseId", "name");
+    const debtors = await Sale.find({ isFullyPaid: false }).populate([
+      {
+        path: "products.productNormaId",
+        select: "productName category",
+      },
+      {
+        path: "customer",
+      },
+    ]);
 
     if (!debtors.length) {
       return response.notFound(res, "Qarzdorlar topilmadi");

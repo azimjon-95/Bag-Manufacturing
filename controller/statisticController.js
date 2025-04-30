@@ -1,6 +1,7 @@
 const ProductEntry = require("../model/ProductEntrySchema");
 const response = require("../utils/response");
 const salesModel = require("../model/saleSchema");
+const ProducedStorySchema = require("../model/producedStory");
 const getMonthlyEntries = async (req, res) => {
   try {
     // Joriy oyning boshlanishi va oxirini hisoblash
@@ -17,19 +18,30 @@ const getMonthlyEntries = async (req, res) => {
     );
 
     // Joriy oy uchun kirimlarni olish
-    const entries = await ProductEntry.find({
-      createdAt: {
-        $gte: startOfMonth, // Oy boshidan
-        $lte: endOfMonth, // Oy oxirigacha
-      },
-    })
-      .populate("productNormaId", "productName category")
-      .populate("warehouseId", "name");
+    // const entries = await ProductEntry.find({
+    //   createdAt: {
+    //     $gte: startOfMonth, // Oy boshidan
+    //     $lte: endOfMonth, // Oy oxirigacha
+    //   },
+    // })
+    //   .populate("productNormaId", "productName category")
+    //   .populate("warehouseId", "name");
 
-    if (!entries.length)
+    // productId hossasi yoqlarini topsin
+
+    const result = await ProducedStorySchema.find({
+      productId: { $exists: false },
+    })
+      .sort({ quantity: -1 }) // kamayish tartibida
+      .populate({
+        path: "productNormaId",
+        select: "productName", // faqat nomini olib kelamiz
+      });
+
+    if (!result.length)
       return response.notFound(res, "Joriy oyda kirimlar topilmadi");
 
-    return response.success(res, "Joriy oyning kirimlari", entries);
+    return response.success(res, "Joriy oyning kirimlari", result);
   } catch (error) {
     return response.serverError(res, "Serverda xatolik yuz berdi");
   }
@@ -51,19 +63,18 @@ const getMonthlyMaterialUsage = async (req, res) => {
     );
 
     // Joriy oy uchun kirimlarni olish
-    const entries = await ProductEntry.find({
-      createdAt: {
-        $gte: startOfMonth,
-        $lte: endOfMonth,
-      },
-    }).populate({
-      path: "productNormaId",
-      select: "productName materials",
-      populate: {
-        path: "materials.materialId",
-        select: "name unit",
-      },
-    });
+    const entries = await ProducedStorySchema.find({
+      productId: { $exists: false },
+    })
+      .sort({ quantity: -1 }) // kamayish tartibida
+      .populate({
+        path: "productNormaId",
+        select: "productName materials",
+        populate: {
+          path: "materials.materialId",
+          select: "name unit",
+        },
+      });
 
     if (!entries.length) {
       return response.notFound(res, "Joriy oyda kirimlar topilmadi");
@@ -123,16 +134,95 @@ const getMonthlySales = async (req, res) => {
       999
     );
 
-    let sales = await salesModel
-      .find({
-        createdAt: {
-          $gte: startOfMonth,
-          $lte: endOfMonth,
+    // let sales = await salesModel.aggregate([
+    //   {
+    //     $match: {
+    //       createdAt: {
+    //         $gte: new Date(startOfMonth),
+    //         $lte: new Date(endOfMonth),
+    //       },
+    //     },
+    //   },
+    //   {
+    //     $unwind: "$products",
+    //   },
+    //   {
+    //     $replaceRoot: { newRoot: "$products" },
+    //   },
+    //   // Lookup for productNormaId
+    //   {
+    //     $lookup: {
+    //       from: "productnormas", // to‘g‘ri kolleksiya nomi (plural & lowercase)
+    //       localField: "productNormaId",
+    //       foreignField: "_id",
+    //       as: "productNorma",
+    //     },
+    //   },
+    //   {
+    //     $lookup: {
+    //       from: "incomingproducts", // to‘g‘ri kolleksiya nomi (plural & lowercase)
+    //       localField: "productId",
+    //       foreignField: "_id",
+    //       as: "product",
+    //     },
+    //   },
+    // ]);
+
+    let sales = await salesModel.aggregate([
+      {
+        $match: {
+          createdAt: {
+            $gte: new Date(startOfMonth),
+            $lte: new Date(endOfMonth),
+          },
         },
-      })
-      .select(["productNormaId", "productId", "quantity"])
-      .populate("productNormaId", "productName category")
-      .populate("productId", "productName category");
+      },
+      {
+        $unwind: "$products",
+      },
+      {
+        $replaceRoot: { newRoot: "$products" },
+      },
+      {
+        $group: {
+          _id: {
+            productId: "$productId",
+            productNormaId: "$productNormaId",
+          },
+          totalQuantity: { $sum: "$quantity" }, // yoki `miqdori` bo‘lsa shuni yozing
+        },
+      },
+      // Lookup for productNorma
+      {
+        $lookup: {
+          from: "productnormas",
+          localField: "_id.productNormaId",
+          foreignField: "_id",
+          as: "productNorma",
+        },
+      },
+      {
+        $unwind: {
+          path: "$productNorma",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      // Lookup for product
+      {
+        $lookup: {
+          from: "incomingproducts",
+          localField: "_id.productId",
+          foreignField: "_id",
+          as: "product",
+        },
+      },
+      {
+        $unwind: {
+          path: "$product",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+    ]);
 
     response.success(res, "Joriy oyning sotuvlari", sales);
   } catch (error) {

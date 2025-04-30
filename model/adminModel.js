@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-
 const AdminSchema = new mongoose.Schema(
   {
     firstName: {
@@ -23,10 +22,15 @@ const AdminSchema = new mongoose.Schema(
       required: true,
       minlength: 6,
     },
+    // 👇 Lavozim (masalan: superadmin, sotuvchi, omborchi va h.k.)
     role: {
       type: String,
-      enum: ["Owner", "Manager", "Warehouseman"], // Only these roles are allowed
-      default: "Manager", // Default role is Manager
+      default: "admin",
+    },
+    // 👇 Ruxsat berilgan yo‘llar (permissions)
+    permissions: {
+      type: [String], // misol: ["/sale", "/customers"]
+      default: [],
     },
   },
   { timestamps: true }

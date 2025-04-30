@@ -75,11 +75,114 @@ class BrakController {
   }
 
   // get all
+  // async getAll(req, res) {
+  //   try {
+  //     const braks = await BrakDb.find().populate("warehouseId", "name");
+
+  //     // Type bo‘yicha ajratish
+  //     const materials = braks.filter((item) => item.type === "material");
+
+  //     // products ichida IncomingProduct va ProductEntry model bo‘yicha farqlash
+  //     const incomingProducts = braks.filter((item) => item.type === "product");
+
+  //     // Materialni populate qilish
+  //     const populatedMaterials = await BrakDb.populate(materials, {
+  //       path: "associated_id",
+  //       model: "Material",
+  //       select: "category inPackage supplier unit yagonaId",
+  //       populate: {
+  //         path: "supplier",
+  //         model: "Customers",
+  //       },
+  //     });
+
+  //     // IncomingProduct bilan populate
+  //     const populatedIncoming = await BrakDb.populate(incomingProducts, {
+  //       path: "associated_id",
+  //       model: "IncomingProduct",
+  //       select: "category supplier",
+  //       populate: {
+  //         path: "supplier",
+  //         model: "Customers",
+  //       },
+  //     });
+
+  //     // // ProductEntry bilan populate
+  //     // const populatedEntry = await BrakDb.populate(incomingProducts, {
+  //     //   path: "associated_id",
+  //     //   model: "ProductEntry",
+  //     //   populate: {
+  //     //     path: "productNormaId",
+  //     //     model: "ProductNorma",
+  //     //   },
+  //     // });
+
+  //     return response.success(res, "Malumotlar topildi", {
+  //       materials: populatedMaterials,
+  //       products: [...populatedIncoming],
+  //     });
+  //   } catch (error) {
+  //     return response.serverError(res, error.message, error);
+  //   }
+  // }
+
   async getAll(req, res) {
     try {
-      const braks = await BrakDb.find();
-      if (!braks.length) return response.error(res, "Malumotlar topilmadi");
-      return response.success(res, "Malumotlar topildi", braks);
+      const braks = await BrakDb.find().populate("warehouseId", "name");
+
+      // Type bo‘yicha ajratish
+      const materials = braks.filter((item) => item.type === "material");
+      const products = braks.filter((item) => item.type === "product");
+
+      // 1. Materialni populate qilish
+      const populatedMaterials = await BrakDb.populate(materials, {
+        path: "associated_id",
+        model: "Material",
+        select: "category inPackage supplier unit yagonaId",
+        populate: {
+          path: "supplier",
+          model: "Customers",
+        },
+      });
+
+      // 2. Product -> avval IncomingProduct bilan populate qilamiz
+      let populatedProducts = await BrakDb.populate(products, {
+        path: "associated_id",
+        model: "IncomingProduct",
+        select: "category supplier uniqueCode",
+        populate: {
+          path: "supplier",
+          model: "Customers",
+        },
+      });
+
+      // 3. Agar associated_id null bo‘lsa, demak bu ProductEntry modelidan bo‘lishi mumkin
+      const productsNeedingEntryPopulate = populatedProducts.filter(
+        (item) => !item.associated_id
+      );
+
+      const populatedProductEntries = await BrakDb.populate(
+        productsNeedingEntryPopulate,
+        {
+          path: "associated_id",
+          model: "ProductEntry",
+          populate: {
+            path: "productNormaId",
+            model: "ProductNorma",
+          },
+        }
+      );
+
+      // 4. associated_id topilganlarini va topilmaganlarini birlashtiramiz
+      const finalPopulatedProducts = [
+        ...populatedProducts.filter((item) => item.associated_id),
+        ...populatedProductEntries,
+      ];
+
+      return response.success(res, "Malumotlar topildi", {
+        materials: populatedMaterials,
+        products: finalPopulatedProducts,
+      });
     } catch (error) {
       return response.serverError(res, error.message, error);
     }

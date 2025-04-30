@@ -215,52 +215,78 @@ class WarehouseController {
   // get all materials
   async getAllMaterials(req, res) {
     try {
-      // 1. Homashyo omborlarini topish
-      const rawMaterialWarehouses = await Warehouse.find({
-        category: "Homashyolar",
-      }).select("_id");
+      const rawMaterials = await Material.find()
+        .populate("supplier")
+        .populate("warehouseId");
 
-      // 2. Tayyor maxsulot omborlarini topish
-      const finishedProductWarehouses = await Warehouse.find({
-        category: "Tayyor maxsulotlar",
-      }).select("_id");
-
-      // Agar hech qanday ombor topilmasa
-      if (!rawMaterialWarehouses.length && !finishedProductWarehouses.length) {
-        return Response.notFound(res, "Omborlar topilmadi");
-      }
-
-      // 3. Ombor ID larini arrayga yig‘ish
-      const rawMaterialWarehouseIds = rawMaterialWarehouses.map(
-        (warehouse) => warehouse._id
-      );
-      const finishedProductWarehouseIds = finishedProductWarehouses.map(
-        (warehouse) => warehouse._id
-      );
-
-      // 4. Materiallarni ombor ID lari bo‘yicha filter qilish
-      const rawMaterials = await Material.find({
-        warehouseId: { $in: rawMaterialWarehouseIds },
-      }).populate("supplier");
-
-      const finishedProducts = await Material.find({
-        warehouseId: { $in: finishedProductWarehouseIds },
-      }).populate("supplier");
-
-      // Agar hech qanday material topilmasa (ixtiyoriy tekshiruv)
-      if (!rawMaterials.length && !finishedProducts.length) {
+      if (!rawMaterials.length) {
         return Response.notFound(res, "Materiallar topilmadi");
       }
 
-      // 5. Javobni tayyorlash
       const responseData = {
-        homashyolar: rawMaterials.length ? rawMaterials : [], // Bo‘sh array qaytarish uchun
-        tayyorMaxsulotlar: finishedProducts.length ? finishedProducts : [], // Bo‘sh array qaytarish uchun
+        homashyolar: rawMaterials.length ? rawMaterials : [],
       };
 
       return Response.success(res, "Barcha materiallar", responseData);
     } catch (error) {
       console.error("Error:", error); // Xatolikni log qilish uchun
+      return Response.serverError(res, "Server xatosi", error.message);
+    }
+  }
+
+  async getAllMaterialsBySupplier(req, res) {
+    try {
+      const materials = await Material.aggregate([
+        {
+          $lookup: {
+            from: "customers", // "Customers" modelining collection nomi kichik harflarda bo'lishi kerak
+            localField: "supplier",
+            foreignField: "_id",
+            as: "supplier",
+          },
+        },
+        { $unwind: "$supplier" },
+        {
+          $group: {
+            _id: {
+              supplierId: "$supplier._id",
+              date: {
+                $dateToString: { format: "%Y-%m-%d", date: "$receivedDate" },
+              },
+            },
+            supplierName: { $first: "$supplier.name" },
+            materials: {
+              $push: {
+                name: "$name",
+                quantity: "$quantity",
+                price: "$price",
+                unit: "$unit",
+                warehouseId: "$warehouseId",
+                receivedDate: "$receivedDate",
+              },
+            },
+            totalQuantity: { $sum: "$quantity" },
+            totalPrice: { $sum: "$price" },
+          },
+        },
+        {
+          $sort: { "_id.date": -1 },
+        },
+      ]);
+
+      if (!materials.length) {
+        return Response.notFound(res, "Materiallar topilmadi");
+      }
+
+      return Response.success(
+        res,
+        "Yetkazib beruvchilarga qarab guruhlangan materiallar",
+        {
+          data: materials,
+        }
+      );
+    } catch (error) {
+      console.error("Error:", error);
       return Response.serverError(res, "Server xatosi", error.message);
     }
   }

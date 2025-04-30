@@ -1,5 +1,6 @@
 const response = require("../utils/response");
 const workersDB = require("../model/workersModel");
+const mongoose = require("mongoose"); // kerak bo'ladi
 
 class WorkerController {
   async getWorkers(req, res) {
@@ -108,10 +109,11 @@ class WorkerController {
 
   async giveSalary(req, res) {
     try {
-      const { workerId, month, salary } = req.body;
+      let { workerId } = req.params;
+      const { month, salary } = req.body;
 
       if (!workerId || !month || !salary) {
-        return response.error(res, "Ishchi, oy va oylik miqdori majburiy");
+        return response.error(res, "Oy va oylik miqdori majburiy");
       }
 
       const worker = await workersDB.findById(workerId);
@@ -140,24 +142,32 @@ class WorkerController {
 
   async getSalaries(req, res) {
     try {
-      const { workerId } = req.query; // optional: agar faqat bitta ishchi uchun chiqarish kerak bo'lsa
+      const { workerId } = req.query;
 
       let workers;
 
       if (workerId) {
+        // ObjectId formatmi? Tekshiramiz
+        if (!mongoose.Types.ObjectId.isValid(workerId)) {
+          return response.badRequest(res, "Noto'g'ri workerId format");
+        }
+
         workers = await workersDB
           .findById(workerId)
           .select("fullname salaryHistory");
+
         if (!workers) {
           return response.notFound(res, "Ishchi topilmadi");
         }
+
         return response.success(res, "Oyliklar topildi", workers);
       } else {
-        // Hammasini olish
-        workers = await workersDB.find({}).select("fullname salaryHistory");
+        // Barcha ishchilarni olish
+        workers = await workersDB.find();
         return response.success(res, "Oyliklar topildi", workers);
       }
     } catch (error) {
+      console.log(error);
       response.serverError(res, error.message, error);
     }
   }

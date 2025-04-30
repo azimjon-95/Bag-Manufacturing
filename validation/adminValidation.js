@@ -17,6 +17,18 @@ const adminValidation = (req, res, next) => {
         pattern: "^[a-zA-Z0-9]+$",
       },
       password: { type: "string", minLength: 6, maxLength: 50 },
+      role: {
+        type: "string",
+        minLength: 3,
+        maxLength: 30,
+      },
+      permissions: {
+        type: "array",
+        items: {
+          type: "string",
+        },
+        uniqueItems: true,
+      },
     },
     required: ["firstName", "lastName", "login", "password"],
     additionalProperties: false,
@@ -33,6 +45,9 @@ const adminValidation = (req, res, next) => {
         login:
           "Login 4-20 ta belgi bo‘lib, faqat harf va raqamlardan iborat bo‘lishi kerak",
         password: "Parol 6-50 ta belgi oralig‘ida bo‘lishi kerak",
+        role: "Lavozim 3-30 ta belgi oralig‘ida bo‘lishi kerak",
+        permissions:
+          "Permissions — takrorlanmagan stringlar ro‘yxati bo‘lishi kerak",
       },
       additionalProperties: "Ruxsat etilmagan maydon kiritildi",
     },

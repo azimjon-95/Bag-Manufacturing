@@ -5,7 +5,7 @@ const BrakSchema = new mongoose.Schema(
     name: { type: String, required: true }, // mahsulot yoki hom ashyo nomi
     warehouseId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Warehouse",
+      ref: "Mywarehouse",
       required: true,
     },
     quantity: { type: Number, required: true },
@@ -18,6 +18,7 @@ const BrakSchema = new mongoose.Schema(
     associated_id: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
+      ref: "Material",
     },
   },
   { timestamps: true }
