@@ -6,7 +6,7 @@ const sales = require("../model/saleSchema");
 class DashboardController {
   async getDashboardData(req, res) {
     try {
-      const balance = await balans.find();
+      const balance = await balans.findOne();
       if (!balance) {
         return response.notFound(res, "Balans topilmadi");
       }
@@ -29,39 +29,52 @@ class DashboardController {
         },
         {
           $group: {
-            _id: null,
+            _id: "$currency",
             totalExpense: { $sum: "$amount" },
           },
         },
       ]);
 
       // 1 oylik foyda
-      let salesData = await sales.aggregate([
+      const salesData = await sales.aggregate([
         {
           $match: {
             createdAt: {
               $gte: startDate,
               $lt: endDate,
             },
+            "payment.currency": { $exists: true },
           },
         },
         {
+          $unwind: "$products", // Har bir mahsulotni ajratib olamiz
+        },
+        {
           $group: {
-            _id: null,
-            totalSales: { $sum: "$totalPrice" },
+            _id: "$payment.currency", // Valyuta bo‘yicha guruhlaymiz
+            totalSales: { $sum: "$products.totalPrice" }, // Har bir mahsulotning totalPrice yig‘iladi
           },
         },
       ]);
 
-      let profit =
-        salesData.length > 0
-          ? salesData[0].totalSales -
-            (harajatlar.length > 0 ? harajatlar[0].totalExpense : 0)
-          : 0;
+      let profit = salesData.length
+        ? salesData.find((i) => i._id === "sum").totalSales -
+          (harajatlar.length
+            ? harajatlar.find((i) => i._id === "sum").totalExpense
+            : 0)
+        : 0;
 
       let data = {
-        balance: balance[0].balance || 0,
-        totalExpense: harajatlar.length > 0 ? harajatlar[0].totalExpense : 0,
+        balance: balance.balance || 0,
+        dollar: balance.dollar || 0,
+        totalExpense: {
+          sum: harajatlar.length
+            ? harajatlar.find((i) => i._id === "sum").totalExpense
+            : 0,
+          dollar: harajatlar.length
+            ? harajatlar.find((i) => i._id === "dollar").totalExpense
+            : 0,
+        },
         profit: profit,
       };
 

@@ -223,11 +223,7 @@ class WarehouseController {
         return Response.notFound(res, "Materiallar topilmadi");
       }
 
-      const responseData = {
-        homashyolar: rawMaterials.length ? rawMaterials : [],
-      };
-
-      return Response.success(res, "Barcha materiallar", responseData);
+      return Response.success(res, "Barcha materiallar", rawMaterials);
     } catch (error) {
       console.error("Error:", error); // Xatolikni log qilish uchun
       return Response.serverError(res, "Server xatosi", error.message);
@@ -258,9 +254,9 @@ class WarehouseController {
             materials: {
               $push: {
                 name: "$name",
-                quantity: "$quantity",
+                // quantity: "$quantity",
                 price: "$price",
-                unit: "$unit",
+                units: "$units",
                 warehouseId: "$warehouseId",
                 receivedDate: "$receivedDate",
               },

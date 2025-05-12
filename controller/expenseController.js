@@ -18,54 +18,6 @@ class ExpenseController {
       response.serverError(res, error.message);
     }
   }
-  // async createExpense(req, res) {
-  //   try {
-  //     let data = req.body;
-  //     let newExpence = await Expense.create(data);
-  //     if (!newExpence) return response.error(res, "Xarajat qo‘shilmadi");
-  //     console.log("newExpence", newExpence);
-
-  //     // update
-  //     let mainBalance = null;
-  //     const currentBalance = await Balance.findOne();
-  //     if (!currentBalance) {
-  //       let newMainBalance = await Balance.create({ balance: 0 });
-  //       mainBalance = newMainBalance.balance;
-  //       return response.error(res, "Balansda yetarli mablag' yoq");
-  //     } else {
-  //       mainBalance = currentBalance.balance;
-  //     }
-  //     if (newExpence.amount > mainBalance) {
-  //       return response.error(res, "Balansda yetarli mablag' yoq");
-  //     }
-
-  //     currentBalance.balance -= newExpence.amount;
-  //     await currentBalance.save();
-
-  //     if (req.body.category === "Avans" || req.body.category === "Ish haqi") {
-  //       const worker = await Workers.findById(req.body.relevantId);
-  //       if (!worker) {
-  //         return response.error(res, "Worker not found");
-  //       }
-  //       worker.balans -= newExpence.amount;
-  //       await worker.save();
-  //     }
-  //     response.success(res, "Xarajat qo'shildi", newExpence);
-  //   } catch (error) {
-  //     if (error.name === "ValidationError") {
-  //       let xatoXabari = "Xarajatni saqlashda xatolik yuz berdi: ";
-  //       for (let field in error.errors) {
-  //         xatoXabari +=
-  //           error.errors[field].kind === "enum"
-  //             ? `${field} uchun kiritilgan qiymat noto‘g‘ri`
-  //             : error.errors[field].message;
-  //       }
-  //       return response.error(res, xatoXabari);
-  //     }
-  //     return response.error(res, error.message);
-  //   }
-  // }
-
   // Barcha expenselarni olish with balance
 
   async createExpense(req, res) {
@@ -86,7 +38,9 @@ class ExpenseController {
       // 2. Balansni olish va tekshirish
       let currentBalance = await Balance.findOne().session(session);
       if (!currentBalance) {
-        currentBalance = await Balance.create([{ balance: 0 }], { session });
+        currentBalance = await Balance.create([{ balance: 0, dollar: 0 }], {
+          session,
+        });
         await session.abortTransaction();
         return response.error(res, "Balansda yetarli mablag' yo'q");
       } else {
@@ -94,29 +48,15 @@ class ExpenseController {
           ? currentBalance[0]
           : currentBalance;
       }
-
-      if (expenseDoc.amount > currentBalance.balance) {
+      let chechBalance = req.body.currency === "sum" ? "balance" : "dollar";
+      if (expenseDoc.amount > currentBalance[chechBalance]) {
         await session.abortTransaction();
         return response.error(res, "Balansda yetarli mablag' yo'q");
       }
 
       // 3. Balansdan ayirish
-      currentBalance.balance -= expenseDoc.amount;
+      currentBalance[chechBalance] -= expenseDoc.amount;
       await currentBalance.save({ session });
-
-      // 4. Agar category Avans yoki Ish haqi bo‘lsa => xodim balansini ayirish
-      if (req.body.category === "Avans" || req.body.category === "Ish haqi") {
-        const worker = await Workers.findById(req.body.relevantId).session(
-          session
-        );
-        if (!worker) {
-          await session.abortTransaction();
-          return response.error(res, "Worker topilmadi");
-        }
-
-        worker.balans -= expenseDoc.amount;
-        await worker.save({ session });
-      }
 
       // 5. Hammasi zo'r bo‘lsa, transactionni yakunlash
       await session.commitTransaction();

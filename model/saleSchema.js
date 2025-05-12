@@ -186,6 +186,12 @@ const SaleSchema = new mongoose.Schema(
         min: 0,
         default: 0,
       },
+      currency: {
+        type: String,
+        enum: ["sum", "dollar"],
+        required: true,
+        default: "sum",
+      },
     },
     debtHistory: [
       {
@@ -203,6 +209,10 @@ const SaleSchema = new mongoose.Schema(
     isFullyPaid: {
       type: Boolean,
       default: false,
+    },
+    debtDate: {
+      type: Date,
+      default: null,
     },
   },
   { timestamps: true }

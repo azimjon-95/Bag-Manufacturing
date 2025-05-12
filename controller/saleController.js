@@ -3,49 +3,91 @@ const Balance = require("../model/balance");
 let response = require("../utils/response");
 let ProductEntry = require("../model/ProductEntrySchema");
 let ImportedProducts = require("../model/incoming.model");
+const mongoose = require("mongoose");
 
 // const createSale = async (req, res) => {
 //   try {
-//     const { productId, quantity, totalPrice } = req.body;
+//     const { products, customer, payment } = req.body; // products => array
 
-//     // 1. Mahsulotni topish
-//     const [exactProduct, exactImportedProduct] = await Promise.all([
-//       ProductEntry.findById(productId),
-//       ImportedProducts.findById(productId),
-//     ]);
-
-//     if (!exactProduct && !exactImportedProduct) {
-//       return response.error(res, "Mahsulot topilmadi");
+//     if (!products || !Array.isArray(products) || products.length === 0) {
+//       return response.error(
+//         res,
+//         "Mahsulotlar ro'yxati bo'sh bo'lmasligi kerak"
+//       );
 //     }
 
-//     const product = exactProduct || exactImportedProduct;
-
-//     // 2. Mahsulot sonini tekshirish
-//     if (product.quantity < quantity) {
-//       return response.error(res, "Mahsulot soni yetarli emas");
-//     }
-
-//     // 3. Mahsulot sonini kamaytirish
-//     product.quantity -= quantity;
-//     await product.save();
-
-//     // 4. Sotuvni yaratish
-//     const newSale = await Sale.create({
-//       ...req.body,
-//       warehouseId: product.warehouseId,
-//       productNormaId: product.productNormaId,
-//       productId: product._id,
-//     });
-//     if (!newSale) {
-//       return response.error(res, "Sotishda xatolik");
-//     }
-
-//     // 5. Balansni yangilash
-//     await Balance.findOneAndUpdate(
-//       {},
-//       { $inc: { balance: totalPrice } }, // balansga qo'shish
-//       { upsert: true, new: true }
+//     // Mahsulotlarni topish
+//     const productPromises = products.map(({ _id }) =>
+//       Promise.all([ProductEntry.findById(_id), ImportedProducts.findById(_id)])
 //     );
+
+//     const productResults = await Promise.all(productPromises);
+
+//     const updatedProducts = [];
+
+//     for (let i = 0; i < products.length; i++) {
+//       const [exactProduct, exactImportedProduct] = productResults[i];
+//       const productData = exactProduct || exactImportedProduct;
+
+//       if (!productData) {
+//         return response.error(
+//           res,
+//           `ID: ${products[i]._id} bo'yicha mahsulot topilmadi`
+//         );
+//       }
+
+//       const requestedQuantity = products[i].quantity;
+
+//       if (productData.quantity < requestedQuantity) {
+//         return response.error(
+//           res,
+//           `Mahsulot yetarli emas: ${productData.name || "Noma'lum mahsulot"}`
+//         );
+//       }
+
+//       // Mahsulot miqdorini kamaytirish
+//       productData.quantity -= requestedQuantity;
+//       await productData.save();
+
+//       // Saqlash uchun tayyorlab olamiz
+//       updatedProducts.push({
+//         productNormaId: productData.productNormaId,
+//         productId: productData._id,
+//         warehouseId: productData.warehouseId,
+//         quantity: requestedQuantity,
+//         sale_price: products[i].sale_price, // frontenddan kelishi kerak
+//       });
+//     }
+
+//     let debtHistory = [{ paidAmount: payment.paidAmount }];
+
+//     // Sotuvni yaratish
+//     const newSale = await Sale.create({
+//       products: updatedProducts,
+//       customer,
+//       payment,
+//       debtHistory,
+//     });
+
+//     if (!newSale) {
+//       return response.error(res, "Sotuvni yaratishda xatolik");
+//     }
+
+//     // // Balansni yangilash
+//     // await Balance.findOneAndUpdate(
+//     //   {},
+//     //   { $inc: { balance: newSale.totalPrice } },
+//     //   { upsert: true, new: true }
+//     // );
+
+//     let balance = await Balance.findOne();
+//     if (payment.currency === "dollar") {
+//       balance.dollar += newSale.totalPrice;
+//     }
+//     if (payment.currency === "sum") {
+//       balance.balance += newSale.totalPrice;
+//     }
+//     await balance.save();
 
 //     return response.created(
 //       res,
@@ -62,91 +104,101 @@ let ImportedProducts = require("../model/incoming.model");
 // };
 
 const createSale = async (req, res) => {
+  const session = await mongoose.startSession();
   try {
-    const { products, customer, payment } = req.body; // products => array
+    await session.withTransaction(async () => {
+      const { products, customer, payment } = req.body;
 
-    if (!products || !Array.isArray(products) || products.length === 0) {
-      return response.error(
-        res,
-        "Mahsulotlar ro'yxati bo'sh bo'lmasligi kerak"
+      if (!products || !Array.isArray(products) || products.length === 0) {
+        throw new Error("Mahsulotlar ro'yxati bo'sh bo'lmasligi kerak");
+      }
+
+      const productPromises = products.map(({ _id }) =>
+        Promise.all([
+          ProductEntry.findById(_id).session(session),
+          ImportedProducts.findById(_id).session(session),
+        ])
       );
-    }
 
-    // Mahsulotlarni topish
-    const productPromises = products.map(({ _id }) =>
-      Promise.all([ProductEntry.findById(_id), ImportedProducts.findById(_id)])
-    );
+      const productResults = await Promise.all(productPromises);
 
-    const productResults = await Promise.all(productPromises);
+      const updatedProducts = [];
 
-    const updatedProducts = [];
+      for (let i = 0; i < products.length; i++) {
+        const [exactProduct, exactImportedProduct] = productResults[i];
+        const productData = exactProduct || exactImportedProduct;
 
-    for (let i = 0; i < products.length; i++) {
-      const [exactProduct, exactImportedProduct] = productResults[i];
-      const productData = exactProduct || exactImportedProduct;
+        if (!productData) {
+          throw new Error(`ID: ${products[i]._id} bo'yicha mahsulot topilmadi`);
+        }
 
-      if (!productData) {
-        return response.error(
-          res,
-          `ID: ${products[i]._id} bo'yicha mahsulot topilmadi`
-        );
+        const requestedQuantity = products[i].quantity;
+
+        if (productData.quantity < requestedQuantity) {
+          throw new Error(
+            `Mahsulot yetarli emas: ${productData.name || "Noma'lum mahsulot"}`
+          );
+        }
+
+        productData.quantity -= requestedQuantity;
+        await productData.save({ session });
+
+        updatedProducts.push({
+          productNormaId: productData.productNormaId,
+          productId: productData._id,
+          warehouseId: productData.warehouseId,
+          quantity: requestedQuantity,
+          sale_price: products[i].sale_price,
+        });
       }
 
-      const requestedQuantity = products[i].quantity;
+      const debtHistory = [{ paidAmount: payment.paidAmount }];
 
-      if (productData.quantity < requestedQuantity) {
-        return response.error(
-          res,
-          `Mahsulot yetarli emas: ${productData.name || "Noma'lum mahsulot"}`
-        );
+      const newSale = await Sale.create(
+        [
+          {
+            products: updatedProducts,
+            customer,
+            payment,
+            debtHistory,
+          },
+        ],
+        { session }
+      );
+
+      if (!newSale || newSale.length === 0) {
+        throw new Error("Sotuvni yaratishda xatolik");
       }
 
-      // Mahsulot miqdorini kamaytirish
-      productData.quantity -= requestedQuantity;
-      await productData.save();
+      const balance = await Balance.findOne().session(session);
+      if (!balance) {
+        throw new Error("Balans topilmadi");
+      }
 
-      // Saqlash uchun tayyorlab olamiz
-      updatedProducts.push({
-        productNormaId: productData.productNormaId,
-        productId: productData._id,
-        warehouseId: productData.warehouseId,
-        quantity: requestedQuantity,
-        sale_price: products[i].sale_price, // frontenddan kelishi kerak
-      });
-    }
+      if (payment.currency === "dollar") {
+        balance.dollar += newSale[0].totalPrice;
+      } else if (payment.currency === "sum") {
+        balance.balance += newSale[0].totalPrice;
+      }
 
-    let debtHistory = [{ paidAmount: payment.paidAmount }];
+      await balance.save({ session });
 
-    // Sotuvni yaratish
-    const newSale = await Sale.create({
-      products: updatedProducts,
-      customer,
-      payment,
-      debtHistory,
+      // Faqat agar transaction muvaffaqiyatli bo‘lsa
+      return response.created(
+        res,
+        "Sotuv muvaffaqiyatli amalga oshirildi",
+        newSale[0]
+      );
     });
-
-    if (!newSale) {
-      return response.error(res, "Sotuvni yaratishda xatolik");
-    }
-
-    // Balansni yangilash
-    await Balance.findOneAndUpdate(
-      {},
-      { $inc: { balance: newSale.totalPrice } },
-      { upsert: true, new: true }
-    );
-
-    return response.created(
-      res,
-      "Sotuv muvaffaqiyatli amalga oshirildi",
-      newSale
-    );
   } catch (error) {
+    await session.abortTransaction();
     return response.serverError(
       res,
       "Sotuvni yaratishda xatolik",
       error.message
     );
+  } finally {
+    session.endSession();
   }
 };
 

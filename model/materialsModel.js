@@ -8,22 +8,27 @@ const MaterialSchema = new mongoose.Schema(
       trim: true,
       required: true,
     },
-    unit: {
+    units: [
+      {
+        unit: {
+          type: String,
+          enum: ["kg", "piece", "meter", "liter", "roll", "package", "karobka"],
+          required: true,
+        },
+        quantity: {
+          type: Number,
+          min: 0,
+          required: true,
+        },
+        inPackage: {
+          type: Number,
+          default: 0,
+        },
+      },
+    ],
+    currency: {
       type: String,
-      enum: ["kg", "piece", "meter", "liter", "roll", "package"],
-      required: true,
-    },
-    inPackage: {
-      type: Number,
-      default: 0,
-    },
-    totalPackageIn: {
-      type: Number,
-      default: 0,
-    },
-    quantity: {
-      type: Number,
-      min: 0,
+      enum: ["sum", "dollar"],
       required: true,
     },
     price: {

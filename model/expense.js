@@ -12,11 +12,14 @@ const expenseSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+    currency: {
+      type: String,
+      enum: ["sum", "dollar"],
+      required: true,
+    },
     category: {
       type: String,
       enum: [
-        "Ish haqi",
-        "Avans",
         "Ijara",
         "Kantselyariya",
         "Xomashyo",

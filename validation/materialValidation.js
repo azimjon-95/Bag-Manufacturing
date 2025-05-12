@@ -12,21 +12,41 @@ const materialSchema = {
       minLength: 1,
       errorMessage: "Material nomi bo'sh bo'lishi mumkin emas",
     },
-    unit: {
+    units: {
+      type: "array",
+      minItems: 1,
+      items: {
+        type: "object",
+        properties: {
+          unit: {
+            type: "string",
+            enum: ["kg", "piece", "meter", "liter", "roll", "package"],
+            errorMessage:
+              "Unit faqat: 'kg', 'piece', 'meter', 'liter', 'roll', 'package' bo'lishi mumkin",
+          },
+          quantity: {
+            type: "number",
+            minimum: 0,
+            errorMessage: "Quantity 0 dan kichik bo'lmasligi kerak",
+          },
+          inPackage: {
+            type: "number",
+            minimum: 0,
+            errorMessage: "InPackage 0 dan kichik bo'lmasligi kerak",
+          },
+        },
+        required: ["unit", "quantity"],
+        additionalProperties: false,
+      },
+      errorMessage: {
+        minItems: "Kamida bitta unit kerak",
+      },
+    },
+
+    currency: {
       type: "string",
-      enum: ["kg", "piece", "meter", "liter", "roll", "package"],
-      errorMessage:
-        "Unit faqat: 'kg', 'piece', 'meter', 'liter', 'roll', 'package' bo'lishi mumkin",
-    },
-    inPackage: {
-      type: "number",
-      minimum: 0,
-      errorMessage: "InPackage 0 dan kichik bo'lmasligi kerak",
-    },
-    quantity: {
-      type: "number",
-      minimum: 0,
-      errorMessage: "Quantity 0 dan kichik bo'lmasligi kerak",
+      enum: ["sum", "dollar"],
+      errorMessage: "Valyuta faqat 'sum' yoki 'dollar' bo'lishi mumkin",
     },
     price: {
       type: "number",
@@ -55,13 +75,13 @@ const materialSchema = {
       errorMessage: "warehouseId noto‘g‘ri formatda (ObjectId bo‘lishi kerak)",
     },
   },
-  required: ["name", "unit", "quantity", "price", "supplier", "warehouseId"],
+  required: ["name", "units", "currency", "price", "supplier", "warehouseId"],
   additionalProperties: false,
   errorMessage: {
     required: {
       name: "Material nomi majburiy",
-      unit: "Unit majburiy",
-      quantity: "Quantity majburiy",
+      units: "Unit majburiy",
+      currency: "Valyuta majburiy",
       price: "Narx majburiy",
       supplier: "Taminotchi ma'lumotlari majburiy",
       warehouseId: "WarehouseId majburiy",

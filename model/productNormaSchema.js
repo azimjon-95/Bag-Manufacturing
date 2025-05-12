@@ -12,6 +12,11 @@ const MaterialRequirementSchema = new mongoose.Schema({
     required: true,
     min: 0, // Quantity cannot be less than 0
   },
+  unit: {
+    type: String,
+    enum: ["kg", "piece", "meter", "liter", "roll", "package", "karobka"],
+    required: true,
+  },
 });
 
 // Main schema for product norms
@@ -27,7 +32,8 @@ const ProductNormaSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    color: { // Replacing the original 'color' field
+    color: {
+      // Replacing the original 'color' field
       type: String,
       required: true,
     },
@@ -35,16 +41,19 @@ const ProductNormaSchema = new mongoose.Schema(
     description: {
       type: String,
     },
-    size: { // Replacing 'razmer'
+    size: {
+      // Replacing 'razmer'
       type: String,
       required: true,
     },
-    uniqueCode: { // Replacing 'kod'
+    uniqueCode: {
+      // Replacing 'kod'
       type: String,
       required: true,
       unique: true, // Ensures the code is unique
     },
-    image: { // Replacing 'rasm'
+    image: {
+      // Replacing 'rasm'
       type: String, // Could store URL or file path to the image
     },
   },
@@ -53,6 +62,6 @@ const ProductNormaSchema = new mongoose.Schema(
 
 // const ProductNorma = mongoose.model("ProductNorma", ProductNormaSchema);
 
-module.exports = mongoose.models.ProductNorma || mongoose.model("ProductNorma", ProductNormaSchema);
-
-
+module.exports =
+  mongoose.models.ProductNorma ||
+  mongoose.model("ProductNorma", ProductNormaSchema);

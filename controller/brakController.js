@@ -11,7 +11,7 @@ class BrakController {
     session.startTransaction();
 
     try {
-      let { type, associated_id } = req.body;
+      let { type, associated_id, unit, quantity } = req.body;
       const brak = await BrakDb.create([req.body], { session });
 
       if (!brak || brak.length === 0) {
@@ -30,13 +30,46 @@ class BrakController {
           return response.error(res, "Material topilmadi");
         }
 
-        if (exactMaterial.quantity < req.body.quantity) {
+        let checkQTY =
+          exactMaterial.units.find((i) => i.unit === unit).quantity <
+          req.body.quantity;
+        if (checkQTY) {
           await session.abortTransaction();
           session.endSession();
           return response.error(res, "Material yetarli emas");
         }
 
-        exactMaterial.quantity -= req.body.quantity;
+        // Kamaytirish funksiyasi
+        const calculateAndUpdateUnits = (units, selectedUnit, usedQuantity) => {
+          const unitMap = {};
+          for (const u of units) {
+            unitMap[u.unit] = u.quantity;
+          }
+
+          const baseAmount = unitMap[selectedUnit];
+          const ratios = {};
+
+          for (const unit of Object.keys(unitMap)) {
+            ratios[unit] = baseAmount === 0 ? 0 : unitMap[unit] / baseAmount;
+          }
+
+          const updated = units.map((u) => {
+            const subtractAmount = usedQuantity * ratios[u.unit];
+            const remaining = u.quantity - subtractAmount;
+            if (remaining < 0)
+              throw new Error(`${u.unit} miqdori yetarli emas`);
+            return { unit: u.unit, quantity: remaining };
+          });
+
+          return updated;
+        };
+
+        exactMaterial.units = calculateAndUpdateUnits(
+          exactMaterial.units,
+          unit,
+          quantity
+        );
+
         await exactMaterial.save({ session });
       }
 

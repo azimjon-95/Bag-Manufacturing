@@ -46,6 +46,14 @@ const brakValidation = (req, res, next) => {
           minLength: "Sabab bo'sh bo'lishi mumkin emas",
         },
       },
+      unit: {
+        type: "string",
+        minLength: 1,
+        errorMessage: {
+          type: "olchov birligi string bo'lishi kerak",
+          minLength: "olchov birligi bo'sh bo'lishi mumkin emas",
+        },
+      },
       associated_id: {
         type: "string",
         errorMessage: {
