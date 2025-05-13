@@ -1,30 +1,33 @@
 const response = require("../utils/response");
-const balans = require("../model/balance");
 const harajat = require("../model/expense");
 const sales = require("../model/saleSchema");
+const moment = require("moment-timezone");
 
 class DashboardController {
   async getDashboardData(req, res) {
     try {
-      const balance = await balans.findOne();
-      if (!balance) {
-        return response.notFound(res, "Balans topilmadi");
+      let startDate, endDate;
+
+      // Agar frontenddan oy yuborilsa (format: "YYYY-MM")
+      if (req.query.month) {
+        const monthMoment = moment.tz(
+          req.query.month,
+          "YYYY-MM",
+          "Asia/Tashkent"
+        );
+        startDate = monthMoment.startOf("month").toDate(); // 1-kun 00:00
+        endDate = monthMoment.clone().add(1, "month").startOf("month").toDate(); // Keyingi oy 1-kuni 00:00
+      } else {
+        const now = moment().tz("Asia/Tashkent");
+        startDate = now.clone().startOf("month").toDate();
+        endDate = now.clone().add(1, "month").startOf("month").toDate();
       }
 
-      // 1 oylik harajatni hisoblash
-      const startDate = new Date();
-      startDate.setDate(1); // Oy boshidan boshlash
-      const endDate = new Date();
-      endDate.setMonth(endDate.getMonth() + 1); // Keyingi oy boshiga o'tish
-      endDate.setDate(1); // Keyingi oy boshidan boshlash
-      // aggregate harajatlar
+      // Harajatlarni olish
       const harajatlar = await harajat.aggregate([
         {
           $match: {
-            createdAt: {
-              $gte: startDate,
-              $lt: endDate,
-            },
+            createdAt: { $gte: startDate, $lt: endDate },
           },
         },
         {
@@ -35,52 +38,46 @@ class DashboardController {
         },
       ]);
 
-      // 1 oylik foyda
+      // Sotuvlarni olish
       const salesData = await sales.aggregate([
         {
           $match: {
-            createdAt: {
-              $gte: startDate,
-              $lt: endDate,
-            },
+            createdAt: { $gte: startDate, $lt: endDate },
             "payment.currency": { $exists: true },
           },
         },
-        {
-          $unwind: "$products", // Har bir mahsulotni ajratib olamiz
-        },
+        { $unwind: "$products" },
         {
           $group: {
-            _id: "$payment.currency", // Valyuta bo‘yicha guruhlaymiz
-            totalSales: { $sum: "$products.totalPrice" }, // Har bir mahsulotning totalPrice yig‘iladi
+            _id: "$payment.currency",
+            totalSales: { $sum: "$products.totalPrice" },
           },
         },
       ]);
 
-      let profit = salesData.length
-        ? salesData.find((i) => i._id === "sum").totalSales -
-          (harajatlar.length
-            ? harajatlar.find((i) => i._id === "sum").totalExpense
-            : 0)
-        : 0;
+      // Qiymatlarni chiqarish (default qiymat: 0)
+      const getValue = (arr, currency, field) =>
+        arr.find((item) => item._id === currency)?.[field] || 0;
 
-      let data = {
-        balance: balance.balance || 0,
-        dollar: balance.dollar || 0,
-        totalExpense: {
-          sum: harajatlar.length
-            ? harajatlar.find((i) => i._id === "sum").totalExpense
-            : 0,
-          dollar: harajatlar.length
-            ? harajatlar.find((i) => i._id === "dollar").totalExpense
-            : 0,
-        },
-        profit: profit,
+      const harajat_sum = getValue(harajatlar, "sum", "totalExpense");
+      const harajat_dollar = getValue(harajatlar, "dollar", "totalExpense");
+
+      const sotuv_sum = getValue(salesData, "sum", "totalSales");
+      const sotuv_dollar = getValue(salesData, "dollar", "totalSales");
+
+      const profit_sum = sotuv_sum - harajat_sum;
+      const profit_dollar = sotuv_dollar - harajat_dollar;
+
+      const data = {
+        daromad: { sotuv_sum, sotuv_dollar },
+        totalExpense: { harajat_sum, harajat_dollar },
+        profit: { profit_sum, profit_dollar },
       };
 
-      return response.success(res, "Dashboard malumotlari", data);
+      return response.success(res, "Dashboard ma'lumotlari", data);
     } catch (error) {
-      return response.serverError(res, "Serverda xatolik: " + error.message);
+      console.error("Dashboard xatolik:", error);
+      return response.serverError(res, "Xatolik: " + error.message);
     }
   }
 }
