@@ -106,7 +106,7 @@ class WarehouseController {
         const existingMaterial = await Material.findOne({ yagonaId }).populate(
           "supplier"
         );
-        if (existingMaterial?.name !== req.body.name) {
+        if (existingMaterial && existingMaterial?.name !== req.body.name) {
           return Response.error(res, "Bunday noyob kodli material mavjud");
         }
       }
