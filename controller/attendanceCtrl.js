@@ -1,7 +1,8 @@
 const Attendance = require("../model/attendanceModel");
 const Worker = require("../model/workersModel");
 const Company = require("../model/Company");
-const Response = require("../utils/response"); // Assuming the response class is in a file named 'response.js'
+const Response = require("../utils/response");
+const moment = require("moment");
 
 class AttendanceController {
   static async handleQRScan(req, res) {
@@ -166,15 +167,67 @@ class AttendanceController {
   }
 
   // Get attendance by ID
+  // static async getAttendanceById(req, res) {
+  //   const { id } = req.params;
+  //   let startDate, endDate;
+
+  //   // Agar frontenddan oy yuborilsa (format: "YYYY-MM")
+  //   if (req.query.month) {
+  //     const monthMoment = moment.tz(
+  //       req.query.month,
+  //       "YYYY-MM",
+  //       "Asia/Tashkent"
+  //     );
+  //     startDate = monthMoment.startOf("month").toDate(); // 1-kun 00:00
+  //     endDate = monthMoment.clone().add(1, "month").startOf("month").toDate(); // Keyingi oy 1-kuni 00:00
+  //   } else {
+  //     const now = moment().tz("Asia/Tashkent");
+  //     startDate = now.clone().startOf("month").toDate();
+  //     endDate = now.clone().add(1, "month").startOf("month").toDate();
+  //   }
+  //   try {
+  //     const attendance = await Attendance.find({
+  //       workerId: id,
+  //       // createdAt: { $gte: startDate, $lt: endDate },
+  //     }).populate("workerId");
+  //     if (!attendance.length) {
+  //       return Response.notFound(res, "Malumot topilmadi");
+  //     }
+  //     return Response.success(res, "Malumot topildi", attendance);
+  //   } catch (error) {
+  //     return Response.serverError(res, "Server xatosi: " + error.message);
+  //   }
+  // }
+
   static async getAttendanceById(req, res) {
     const { id } = req.params;
+    const monthQuery = req.query.month;
+    let targetMonth;
+
+    if (monthQuery && moment(monthQuery, "YYYY-MM", true).isValid()) {
+      targetMonth = moment.tz(monthQuery, "YYYY-MM", "Asia/Tashkent");
+    } else {
+      targetMonth = moment().tz("Asia/Tashkent");
+    }
+
+    const startDate = targetMonth.clone().startOf("month").toDate();
+    const endDate = targetMonth
+      .clone()
+      .add(1, "month")
+      .startOf("month")
+      .toDate();
 
     try {
-      const attendance = await Attendance.findById(id).populate("workerId");
-      if (!attendance) {
-        return Response.notFound(res, "Attendance topilmadi");
+      const attendance = await Attendance.find({
+        workerId: id,
+        createdAt: { $gte: startDate, $lt: endDate },
+      }).populate("workerId");
+
+      if (!attendance.length) {
+        return Response.notFound(res, "Ma'lumot topilmadi");
       }
-      return Response.success(res, "Attendance topildi", attendance);
+
+      return Response.success(res, "Ma'lumot topildi", attendance);
     } catch (error) {
       return Response.serverError(res, "Server xatosi: " + error.message);
     }

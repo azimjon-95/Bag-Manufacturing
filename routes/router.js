@@ -92,7 +92,7 @@ router.get(
   AttendanceController.getAttendanceTodaysPiecework
 );
 router.get("/attendance/all", AttendanceController.getAttendanceAll);
-router.get("/attendance/:id", AttendanceController.getAttendanceById);
+router.post("/attendance/:id", AttendanceController.getAttendanceById);
 // all attendance
 
 // Company Routes
