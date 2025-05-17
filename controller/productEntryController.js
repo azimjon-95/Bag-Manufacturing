@@ -337,11 +337,102 @@ const createProductEntry = async (req, res) => {
   }
 };
 
+// const getAllProductEntries = async (req, res) => {
+//   try {
+//     // Fetch all entries with population
+//     const entries = await ProductEntry.find()
+//       .populate({
+//         path: "productNormaId",
+//         populate: {
+//           path: "materials.materialId", // materials array ichidagi materialId ni populate qiladi
+//           model: "Material",
+//           select: "price units",
+//         },
+//       })
+//       .populate("warehouseId");
+
+//     if (!entries.length) {
+//       return res.status(404).json({
+//         state: false,
+//         message: "Kirimlar topilmadi",
+//       });
+//     }
+
+//     let data = entries.map((a) => {
+//       if (!a) return a;
+//       const materials = a.productNormaId?.materials || [];
+//       const unitPrice = materials.reduce((acc, cur) => {
+//         const materialUnits = cur.materialId?.units || [];
+//         const unitObj = materialUnits.find((m) => m.unit === cur.unit);
+//         if (unitObj && cur.materialId?.price) {
+//           let pricePerUnit = unitObj.quantity / cur.materialId.price;
+//           const totalPrice = cur.quantity * pricePerUnit;
+//           let s = acc + totalPrice;
+//           return s * a.quantity;
+//         }
+//         return acc;
+//       }, 0);
+
+//       return {
+//         ...(a.toObject?.() || a),
+//         unitPrice,
+//       };
+//     });
+
+//     // Combine entries by productNormaId
+//     const combinedEntries = Object.values(
+//       data.reduce((acc, entry) => {
+//         const productNormaId = entry.productNormaId?._id.toString();
+
+//         if (!acc[productNormaId]) {
+//           // Initialize with the full entry, including populated fields
+//           acc[productNormaId] = {
+//             ...entry.toObject(),
+//             quantity: 0,
+//           };
+//         }
+
+//         acc[productNormaId].quantity += entry.quantity;
+
+//         // Optional: Update other fields if needed (e.g., keep the latest entry's data)
+//         // Example: If you want to keep the most recent entry's metadata
+//         if (entry.createdAt > acc[productNormaId].createdAt) {
+//           acc[productNormaId] = {
+//             ...entry.toObject(),
+//             quantity: acc[productNormaId].quantity, // Preserve the summed quantity
+//           };
+//         }
+
+//         return acc;
+//       }, {})
+//     );
+
+//     return res.status(200).json({
+//       state: true,
+//       message: "Barcha kirimlar",
+//       innerData: combinedEntries,
+//     });
+//   } catch (error) {
+//     return res.status(500).json({
+//       state: false,
+//       message: "Server xatosi",
+//       error: error.message,
+//     });
+//   }
+// };
+
 const getAllProductEntries = async (req, res) => {
   try {
     // Fetch all entries with population
     const entries = await ProductEntry.find()
-      .populate("productNormaId", "productName category uniqueCode")
+      .populate({
+        path: "productNormaId",
+        populate: {
+          path: "materials.materialId", // materials array ichidagi materialId ni populate qiladi
+          model: "Material",
+          select: "price units",
+        },
+      })
       .populate("warehouseId");
 
     if (!entries.length) {
@@ -351,27 +442,46 @@ const getAllProductEntries = async (req, res) => {
       });
     }
 
+    let data = entries.map((a) => {
+      if (!a) return a;
+      const materials = a.productNormaId?.materials || [];
+      const unitPrice = materials.reduce((acc, cur) => {
+        const materialUnits = cur.materialId?.units || [];
+        const unitObj = materialUnits.find((m) => m.unit === cur.unit);
+        if (unitObj && cur.materialId?.price) {
+          let pricePerUnit = unitObj.quantity / cur.materialId.price;
+          const totalPrice = cur.quantity * pricePerUnit;
+          let s = acc + totalPrice;
+          return s * a.quantity;
+        }
+        return acc;
+      }, 0);
+
+      return {
+        ...(a.toObject?.() || a),
+        unitPrice,
+      };
+    });
+
     // Combine entries by productNormaId
     const combinedEntries = Object.values(
-      entries.reduce((acc, entry) => {
+      data.reduce((acc, entry) => {
         const productNormaId = entry.productNormaId?._id.toString();
 
         if (!acc[productNormaId]) {
           // Initialize with the full entry, including populated fields
           acc[productNormaId] = {
-            ...entry.toObject(),
+            ...entry, // Use entry directly since it's already a plain object
             quantity: 0,
           };
         }
 
-        // Sum the quantity
         acc[productNormaId].quantity += entry.quantity;
 
         // Optional: Update other fields if needed (e.g., keep the latest entry's data)
-        // Example: If you want to keep the most recent entry's metadata
         if (entry.createdAt > acc[productNormaId].createdAt) {
           acc[productNormaId] = {
-            ...entry.toObject(),
+            ...entry, // Use entry directly
             quantity: acc[productNormaId].quantity, // Preserve the summed quantity
           };
         }

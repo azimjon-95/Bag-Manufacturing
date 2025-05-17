@@ -4,36 +4,6 @@ const Company = require("../model/Company");
 const Response = require("../utils/response"); // Assuming the response class is in a file named 'response.js'
 
 class AttendanceController {
-  // Helper function to calculate wage and hours
-  static async calculateWage(
-    worker,
-    attendance,
-    fullDayHours,
-    expectedStartTime,
-    expectedEndTime
-  ) {
-    const startTime = attendance.startTime;
-
-    if (worker.workType === "daily") {
-      attendance.dailySalary = worker.rates.daily;
-      if (startTime > expectedStartTime) {
-        const hoursLate = (startTime - expectedStartTime) / (1000 * 60 * 60);
-        const deduction = (hoursLate / fullDayHours) * worker.rates.daily;
-        attendance.dailySalary = Math.max(0, worker.rates.daily - deduction);
-      }
-    } else if (worker.workType === "hourly") {
-      const hoursLate =
-        startTime > expectedStartTime
-          ? (startTime - expectedStartTime) / (1000 * 60 * 60)
-          : 0;
-      const remainingHours = Math.max(0, fullDayHours - hoursLate);
-      attendance.hourlyWage = remainingHours * worker.rates.hourly;
-    }
-
-    return attendance;
-  }
-
-  // QR scan handler
   static async handleQRScan(req, res) {
     const { workerId } = req.body;
 
@@ -43,80 +13,109 @@ class AttendanceController {
       const worker = await Worker.findById(workerId);
       if (!worker) return Response.notFound(res, "Ishchi topilmadi");
 
-      const today = new Date().setHours(0, 0, 0, 0);
-      let attendance = await Attendance.findOne({
+      let todayAttendance = await Attendance.findOne({
         workerId: worker._id,
-        date: { $gte: today },
+        createdAt: {
+          $gte: new Date(new Date().setHours(0, 0, 0, 0)),
+          $lt: new Date(new Date().setHours(23, 59, 59, 999)),
+        },
       });
 
-      // Fetch default working hours from Company model
-      const company = await Company.findOne();
-      if (!company || !company.defaultWorkingHours)
-        return Response.serverError(res, "Kompaniya sozlamalari topilmadi");
+      if (todayAttendance && todayAttendance.status === "left") {
+        return Response.error(
+          res,
+          "Ishchi bugun ishga kelgan va ishni yakunlagan"
+        );
+      }
 
-      const { start, end } = company.defaultWorkingHours;
-      const [startHour, startMinute] = start.split(":").map(Number);
-      const [endHour, endMinute] = end.split(":").map(Number);
-
-      const expectedStartTime = new Date(today);
-      expectedStartTime.setHours(startHour, startMinute, 0, 0);
-
-      const expectedEndTime = new Date(today);
-      expectedEndTime.setHours(endHour, endMinute, 0, 0);
-
-      const fullDayHours =
-        (expectedEndTime - expectedStartTime) / (1000 * 60 * 60);
-
-      if (!attendance) {
-        attendance = new Attendance({
+      if (!todayAttendance) {
+        let attendance = new Attendance({
           workerId: worker._id,
           workType: worker.workType,
           startTime: new Date(),
-          date: new Date(),
-          dailySalary: 0,
-          hourlyWage: 0,
           status: "arrived",
         });
-
-        // Use explicit class reference instead of 'this'
-        await AttendanceController.calculateWage(
-          worker,
-          attendance,
-          fullDayHours,
-          expectedStartTime,
-          expectedEndTime
-        );
-        await attendance.save();
-        return Response.created(res, "Ishga kelish qayd etildi", attendance);
-      }
-
-      if (attendance.status === "arrived") {
-        attendance.endTime = new Date();
-        attendance.status = "left";
-
-        if (worker.workType === "hourly") {
-          const hoursWorked =
-            (attendance.endTime - attendance.startTime) / (1000 * 60 * 60);
-          attendance.hourlyWage = hoursWorked * worker.rates.hourly;
-          worker.balans += hoursWorked * worker.rates.hourly;
-        } else if (
-          worker.workType === "daily" &&
-          attendance.endTime < expectedEndTime
-        ) {
-          const hoursWorked =
-            (attendance.endTime - attendance.startTime) / (1000 * 60 * 60);
-          const deduction =
-            ((fullDayHours - hoursWorked) / fullDayHours) * worker.rates.daily;
-          attendance.dailySalary = Math.max(0, worker.rates.daily - deduction);
-          worker.balans += attendance.dailySalary;
+        let respons = await attendance.save();
+        if (!respons) {
+          return Response.notFound(res, "Ishchi topilmadi va saqlanmadi");
         }
-
-        await attendance.save();
-        await worker.save();
-        return Response.success(res, "Ishdan ketish qayd etildi", attendance);
+        return Response.created(res, "Ishga kelish qayd etildi", respons);
       }
 
-      return Response.warning(res, "Bugungi ish allaqachon yakunlangan");
+      const hozir = new Date();
+      const startTime = todayAttendance.startTime;
+      const minutFarqi = (hozir - startTime) / (1000 * 60);
+
+      if (minutFarqi < 10) {
+        return Response.error(
+          res,
+          "Ishdan erta ketmoqdasiz! Kamida 10 minut ishlash kerak."
+        );
+      }
+
+      if (worker.workType === "daily") {
+        todayAttendance.dailySalary = worker.rates.daily;
+        todayAttendance.status = "left";
+        todayAttendance.endTime = new Date();
+        let response = await todayAttendance.save();
+
+        worker.balans = worker.balans + worker.rates.daily;
+        let savedWorker = await worker.save();
+
+        if (!response || !savedWorker) {
+          return Response.notFound(res, "Ishchi topilmadi va saqlanmadi");
+        }
+        return Response.success(
+          res,
+          "Ishdan ketish qayd etildi",
+          todayAttendance
+        );
+      }
+
+      if (worker.workType === "hourly") {
+        todayAttendance.endTime = new Date();
+
+        // Ishlangan vaqt (soatlarda, 2 xonagacha)
+        const totalHours =
+          (todayAttendance.endTime - todayAttendance.startTime) /
+          (1000 * 60 * 60);
+        todayAttendance.totalHours = Number(totalHours.toFixed(2));
+
+        // Ish haqi (soat * stavka), 2 xonagacha
+        todayAttendance.hourlyWage = Number(
+          (todayAttendance.totalHours * worker.rates.hourly).toFixed(2)
+        );
+
+        todayAttendance.status = "left";
+        let response = await todayAttendance.save();
+
+        // Agar balansga qo‘shish kerak bo‘lsa:
+        worker.balans += todayAttendance.hourlyWage;
+        let savedWorker = await worker.save();
+
+        if (!response || !savedWorker) {
+          return Response.notFound(res, "Ishchi topilmadi va saqlanmadi");
+        }
+        return Response.success(
+          res,
+          "Ishdan ketish qayd etildi",
+          todayAttendance
+        );
+      }
+
+      if (worker.workType === "piecework") {
+        todayAttendance.status = "left";
+        todayAttendance.endTime = new Date();
+        let response = await todayAttendance.save();
+        if (!response) {
+          return Response.notFound(res, "Ishchi topilmadi va saqlanmadi");
+        }
+        return Response.success(
+          res,
+          "Ishdan ketish qayd etildi",
+          todayAttendance
+        );
+      }
     } catch (error) {
       return Response.serverError(res, "Server xatosi: " + error.message);
     }
@@ -125,19 +124,25 @@ class AttendanceController {
   // Add piecework
   static async addPieceWork(req, res) {
     const { attendanceId, pieceWorkData } = req.body;
-
     if (!attendanceId || !pieceWorkData) {
       return Response.error(
         res,
-        "attendanceId va pieceWorkData kiritilishi shart"
+        "attendanceId va ish malumotlari kiritilishi shart"
       );
     }
-
     try {
       const attendance = await Attendance.findById(attendanceId);
-      if (!attendance || attendance.workType !== "piecework") {
-        return Response.notFound(res, "Abyom ishchi topilmadi");
+      if (!attendance) {
+        return Response.notFound(res, "ishchi topilmadi");
       }
+
+      if (attendance.status === "left") {
+        return Response.error(
+          res,
+          "Ishchi ishni yakunlagan, yangi ish belgilash mumkin emas"
+        );
+      }
+
       const worker = await Worker.findById(attendance.workerId);
 
       attendance.pieceWorks.push(pieceWorkData);
@@ -145,12 +150,16 @@ class AttendanceController {
         (sum, work) => sum + work.totalPrice,
         0
       );
-      attendance.status = "completed";
+
       worker.balans += attendance.pieceWorkTotal;
 
-      await attendance.save();
-      await worker.save();
-      return Response.success(res, "Ish qo'shildi", attendance);
+      let res1 = await attendance.save();
+      let res2 = await worker.save();
+      if (!res1 || !res2) {
+        return Response.notFound(res, "Ishchi topilmadi va saqlanmadi");
+      }
+
+      return Response.success(res, "Malumotlar saqlandi", attendance);
     } catch (error) {
       return Response.serverError(res, "Server xatosi: " + error.message);
     }
@@ -188,82 +197,10 @@ class AttendanceController {
     }
   }
 
-  // static async getAttendanceTodays(req, res) {
-  //   try {
-  //     // Get the start and end of today
-  //     const today = new Date();
-  //     today.setHours(0, 0, 0, 0); // Start of today
-  //     const tomorrow = new Date(today);
-  //     tomorrow.setDate(today.getDate() + 1); // Start of tomorrow
-
-  //     // Find attendance records for today
-  //     const attendance = await Attendance.find({
-  //       date: {
-  //         $gte: today,
-  //         $lt: tomorrow,
-  //       },
-  //     }).populate("workerId", "fullname");
-
-  //     if (!attendance || attendance.length === 0) {
-  //       return Response.notFound(res, "Bugungi attendance topilmadi", []);
-  //     }
-
-  //     return Response.success(res, "Bugungi attendance topildi", attendance);
-  //   } catch (error) {
-  //     return Response.serverError(res, "Server xatosi: " + error.message);
-  //   }
-  // }
-
   static async getAttendanceTodays(req, res) {
-    // try {
-    //   const today = new Date();
-    //   today.setHours(0, 0, 0, 0); // Start of today
-    //   const tomorrow = new Date(today);
-    //   tomorrow.setDate(today.getDate() + 1); // Start of tomorrow
-
-    //   // 1. Get all workers
-    //   const allWorkers = await Worker.find({}, "_id fullname workType");
-
-    //   // 2. Get today's attendance records
-    //   const todaysAttendance = await Attendance.find({
-    //     date: { $gte: today, $lt: tomorrow },
-    //   });
-
-    //   // 3. Combine worker + attendance
-    //   const result = allWorkers.map((worker) => {
-    //     const attendance = todaysAttendance.find(
-    //       (item) => item.workerId.toString() === worker._id.toString()
-    //     );
-
-    //     return {
-    //       _id: worker._id,
-    //       fullname: worker.fullname,
-    //       workType: worker.workType,
-    //       date: attendance?.date || null,
-    //       startTime: attendance?.startTime || null,
-    //       endTime: attendance?.endTime || null,
-    //       totalHours: attendance?.totalHours || null,
-    //       pieceWorks: attendance?.pieceWorks || [],
-    //       dailySalary: attendance?.dailySalary || null,
-    //       pieceWorkTotal: attendance?.pieceWorkTotal || null,
-    //       hourlyWage: attendance?.hourlyWage || null,
-    //     };
-    //   });
-
-    //   return Response.success(
-    //     res,
-    //     "Barcha ishchilar va bugungi davomat",
-    //     result
-    //   );
-    // } catch (error) {
-    //   return Response.serverError(res, "Server xatosi: " + error.message);
-    // }
-
     try {
       const { date } = req.query;
-      if (!date) {
-        return Response.badRequest(res, "Sana yuborilmadi");
-      }
+      if (!date) return Response.badRequest(res, "Sana yuborilmadi");
 
       const startOfDay = new Date(date);
       startOfDay.setHours(0, 0, 0, 0);
@@ -271,33 +208,36 @@ class AttendanceController {
       const endOfDay = new Date(date);
       endOfDay.setHours(23, 59, 59, 999);
 
-      const allWorkers = await Worker.find({}, "_id fullname workType");
+      // const allWorkers = await Worker.find(
+      //   { createdAt: { $gte: startOfDay, $lte: endOfDay } },
+      //   "_id fullname workType"
+      // );
 
       const attendance = await Attendance.find({
-        date: { $gte: startOfDay, $lte: endOfDay },
-      });
+        createdAt: { $gte: startOfDay, $lte: endOfDay },
+      }).populate("workerId", "fullname");
 
-      const result = allWorkers.map((worker) => {
-        const found = attendance.find(
-          (a) => a.workerId.toString() === worker._id.toString()
-        );
+      // const result = allWorkers.map((worker) => {
+      //   const found = attendance.find(
+      //     (a) => a.workerId.toString() === worker._id.toString()
+      //   );
 
-        return {
-          _id: worker._id,
-          fullname: worker.fullname,
-          workType: worker.workType,
-          date: found?.date || null,
-          startTime: found?.startTime || null,
-          endTime: found?.endTime || null,
-          totalHours: found?.totalHours || null,
-          pieceWorks: found?.pieceWorks || [],
-          dailySalary: found?.dailySalary || null,
-          hourlyWage: found?.hourlyWage || null,
-          pieceWorkTotal: found?.pieceWorkTotal || null,
-        };
-      });
+      //   return {
+      //     _id: worker._id,
+      //     fullname: worker.fullname,
+      //     workType: worker.workType,
+      //     date: found?.date || null,
+      //     startTime: found?.startTime || null,
+      //     endTime: found?.endTime || null,
+      //     totalHours: found?.totalHours || null,
+      //     pieceWorks: found?.pieceWorks || [],
+      //     dailySalary: found?.dailySalary || null,
+      //     hourlyWage: found?.hourlyWage || null,
+      //     pieceWorkTotal: found?.pieceWorkTotal || null,
+      //   };
+      // });
 
-      return Response.success(res, "Tanlangan kundagi davomat", result);
+      return Response.success(res, "Tanlangan kundagi davomat", attendance);
     } catch (error) {
       return Response.serverError(res, "Server xatosi: " + error.message);
     }
@@ -305,22 +245,22 @@ class AttendanceController {
 
   static async getAttendanceTodaysPiecework(req, res) {
     try {
-      // Get the start and end of today
       const today = new Date();
-      today.setHours(0, 0, 0, 0); // Start of today
+      today.setHours(0, 0, 0, 0);
       const tomorrow = new Date(today);
-      tomorrow.setDate(today.getDate() + 1); // Start of tomorrow
+      tomorrow.setDate(today.getDate() + 1);
 
       // Find attendance records for today with workType 'piecework'
       const attendance = await Attendance.find({
-        date: {
+        createdAt: {
           $gte: today,
           $lt: tomorrow,
         },
         workType: "piecework",
-      }); // Optionally populate workerId for worker details
+        status: "arrived",
+      }).populate("workerId"); // Optionally populate workerId for worker details
 
-      if (!attendance || attendance.length === 0) {
+      if (attendance.length === 0) {
         return Response.notFound(
           res,
           "Bugungi piecework attendance topilmadi",
@@ -330,7 +270,7 @@ class AttendanceController {
 
       return Response.success(
         res,
-        "Bugungi piecework attendance topildi",
+        "Bugungi ishbay hodimlar topildi",
         attendance
       );
     } catch (error) {

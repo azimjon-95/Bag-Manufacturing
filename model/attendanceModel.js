@@ -1,48 +1,37 @@
-const mongoose = require('mongoose');
-const PieceWorkSchema = require('./PieceWork');
+const mongoose = require("mongoose");
+const PieceWorkSchema = require("./PieceWork");
 
-const AttendanceSchema = new mongoose.Schema({
+const AttendanceSchema = new mongoose.Schema(
+  {
     workerId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Worker',
-        required: true
-    },
-    date: {
-        type: Date,
-        default: Date.now
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Worker",
+      required: true,
     },
     workType: {
-        type: String,
-        enum: ['hourly', 'daily', 'piecework'],
-        required: true
+      type: String,
+      enum: ["hourly", "daily", "piecework"],
+      required: true,
     },
     startTime: { type: Date },
     endTime: { type: Date },
-    totalHours: {
-        type: Number,
-        default: function () {
-            if (this.startTime && this.endTime) {
-                return (this.endTime - this.startTime) / (1000 * 60 * 60);
-            }
-            return 0;
-        }
-    },
+    totalHours: { type: Number },
     hourlyWage: { type: Number, default: 0 },
     dailySalary: { type: Number, default: 0 },
     pieceWorks: [PieceWorkSchema],
     pieceWorkTotal: {
-        type: Number,
-        default: function () {
-            return this.pieceWorks.reduce((sum, work) => sum + work.totalPrice, 0);
-        }
+      type: Number,
+      default: function () {
+        return this.pieceWorks.reduce((sum, work) => sum + work.totalPrice, 0);
+      },
     },
     status: {
-        type: String,
-        enum: ['arrived', 'left', 'completed'],
-        default: 'arrived'
-    }
-}, { timestamps: true });
+      type: String,
+      enum: ["arrived", "left", "completed"],
+      default: "arrived",
+    },
+  },
+  { timestamps: true }
+);
 
-module.exports = mongoose.model('Attendance', AttendanceSchema);
-
-
+module.exports = mongoose.model("Attendance", AttendanceSchema);
