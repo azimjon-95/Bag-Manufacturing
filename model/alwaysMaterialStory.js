@@ -1,7 +1,8 @@
+//  doimiy saqlanadi kamaymaydi ishlatilganda
 // models/Material.js
 const mongoose = require("mongoose");
 
-const MaterialSchema = new mongoose.Schema(
+const alwaysMaterialStorySchema = new mongoose.Schema(
   {
     name: {
       type: String,
@@ -58,40 +59,9 @@ const MaterialSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// saqlashdan avval totalPackageIn ni o'zgartirish kerak
-MaterialSchema.pre("save", function (next) {
-  if (this.inPackage > 0) {
-    this.totalPackageIn = this.quantity * this.inPackage;
-  }
-  next();
-});
-
-// models/Warehouse.js
-const WarehouseSchema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    description: {
-      type: String,
-      trim: true,
-    },
-    category: {
-      type: String,
-      trim: true,
-      enum: ["Tayyor maxsulotlar", "Homashyolar"],
-      required: true,
-    },
-  },
-  { timestamps: true }
+const Material = mongoose.model(
+  "alwaysMaterialStorySchema",
+  alwaysMaterialStorySchema
 );
 
-const Warehouse = mongoose.model("Mywarehouse", WarehouseSchema);
-const Material = mongoose.model("Material", MaterialSchema);
-
-module.exports = {
-  Material,
-  Warehouse,
-};
+module.exports = Material;

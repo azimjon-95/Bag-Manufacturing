@@ -1,6 +1,7 @@
 // controllers/warehouseController.js
 const { Warehouse, Material } = require("../model/materialsModel");
 const Response = require("../utils/response");
+const alwaysMaterialStory = require("../model/alwaysMaterialStory");
 
 class WarehouseController {
   // Warehouse CRUD operations
@@ -112,14 +113,15 @@ class WarehouseController {
       }
 
       const material = await Material.create(req.body);
-      let res1 = await material.save();
-      if (!res1) return Response.error(res, "Material saqlanmadi");
+      if (!material) return Response.error(res, "Material saqlanmadi");
 
-      return Response.created(
-        res,
-        "Material muvaffaqiyatli qo‘shildi",
-        material
-      );
+      // alwaysMaterialStory hujjatini _id ni Material bilan bir xil qilib saqlaymiz
+      await alwaysMaterialStory.create({
+        _id: material._id,
+        ...material.toObject(),
+      });
+
+      Response.success(res, "Material muvaffaqiyatli saqlandi", material);
     } catch (error) {
       return Response.error(res, error.message);
     }
@@ -247,9 +249,6 @@ class WarehouseController {
           $group: {
             _id: {
               supplierId: "$supplier._id",
-              date: {
-                $dateToString: { format: "%Y-%m-%d", date: "$receivedDate" },
-              },
             },
             supplierName: { $first: "$supplier.name" },
             materials: {
@@ -259,7 +258,6 @@ class WarehouseController {
                 price: "$price",
                 units: "$units",
                 warehouseId: "$warehouseId",
-                receivedDate: "$receivedDate",
               },
             },
             totalQuantity: { $sum: "$quantity" },

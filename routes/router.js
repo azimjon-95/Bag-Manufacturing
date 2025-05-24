@@ -32,6 +32,7 @@ const {
 const {
   createProductEntry,
   getAllProductEntries,
+  getAllProductEntriesByDate,
 } = require("../controller/productEntryController");
 const {
   createSale,
@@ -56,6 +57,7 @@ const customerValidation = require("../validation/customerValidation");
 const aktsverkaController = require("../controller/aktsverka");
 
 router.get("/dashboard", dashboardController.getDashboardData);
+router.get("/dashboard/wherehouse", dashboardController.getWhereHouseInfo);
 
 router.get("/balance", balanceController.getBalance);
 
@@ -169,6 +171,7 @@ router.delete("/product-normas/:id", deleteProductNorma);
 // Product Entries
 router.post("/product-entries", createProductEntry);
 router.get("/product-entries", getAllProductEntries);
+router.get("/productEntriesByDate", getAllProductEntriesByDate);
 
 // Salary
 router.post("/salary/monthly", getMonthlyWorkerSalaries);

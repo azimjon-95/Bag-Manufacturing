@@ -64,11 +64,6 @@ const materialSchema = {
     supplier: {
       type: "string",
     },
-    receivedDate: {
-      type: "string",
-      format: "date-time",
-      nullable: true, // Still nullable to allow explicit null, but default in Mongoose ensures a value
-    },
     warehouseId: {
       type: "string",
       pattern: "^[0-9a-fA-F]{24}$",
