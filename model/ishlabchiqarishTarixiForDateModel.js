@@ -5,7 +5,6 @@ const ishlabchiqarishTarixiForDate = new mongoose.Schema(
     productNormaId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "ProductNorma", // ProductNorma modeliga havola
-      required: true,
     },
     warehouseId: {
       type: mongoose.Schema.Types.ObjectId,

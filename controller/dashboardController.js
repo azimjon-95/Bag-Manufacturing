@@ -3,7 +3,7 @@ const harajat = require("../model/expense");
 const sales = require("../model/saleSchema");
 const moment = require("moment-timezone");
 const alwaysMaterialStory = require("../model/alwaysMaterialStory");
-const ishlabchiqarishTarixiForDate = require("../model/ishlabchiqarishTarixiForDateModel");
+const usedMaterials = require("../model/usedMaterialsModel");
 
 class DashboardController {
   async getDashboardData(req, res) {
@@ -83,11 +83,150 @@ class DashboardController {
     }
   }
 
+  // async getWhereHouseInfo(req, res) {
+  //   const moment = require("moment-timezone");
+
+  //   // Sana oralig'ini belgilash
+  //   let startDate, endDate;
+  //   if (req.query.startDate && req.query.endDate) {
+  //     startDate = moment
+  //       .tz(req.query.startDate, "YYYY-MM-DD", "Asia/Tashkent")
+  //       .startOf("day")
+  //       .toDate();
+  //     endDate = moment
+  //       .tz(req.query.endDate, "YYYY-MM-DD", "Asia/Tashkent")
+  //       .endOf("day")
+  //       .toDate();
+  //   } else {
+  //     const now = moment().tz("Asia/Tashkent");
+  //     startDate = now.clone().startOf("month").toDate();
+  //     endDate = now.clone().add(1, "month").startOf("month").toDate();
+  //   }
+
+  //   try {
+  //     // 1. KIRIM ma'lumotlarini olish (alwaysMaterialStory dan)
+  //     const kirimData = await alwaysMaterialStory.aggregate([
+  //       {
+  //         $match: {
+  //           createdAt: { $gte: startDate, $lt: endDate },
+  //         },
+  //       },
+  //       {
+  //         $addFields: {
+  //           quantity: { $arrayElemAt: ["$units.quantity", 0] },
+  //         },
+  //       },
+  //       {
+  //         $group: {
+  //           _id: {
+  //             warehouseId: "$warehouseId",
+  //             currency: "$currency",
+  //           },
+  //           materialTypes: { $sum: 1 }, // Material turlarini sanash
+  //           totalQuantity: { $sum: "$quantity" },
+  //           totalPrice: { $sum: { $multiply: ["$price", "$quantity"] } },
+  //         },
+  //       },
+  //       {
+  //         $group: {
+  //           _id: "$_id.warehouseId",
+  //           kirim: {
+  //             $push: {
+  //               currency: "$_id.currency",
+  //               totalQuantity: "$totalQuantity",
+  //               totalPrice: "$totalPrice",
+  //               materialTypes: "$materialTypes",
+  //             },
+  //           },
+  //         },
+  //       },
+  //       {
+  //         $lookup: {
+  //           from: "mywarehouses",
+  //           localField: "_id",
+  //           foreignField: "_id",
+  //           as: "warehouse",
+  //         },
+  //       },
+  //       { $unwind: "$warehouse" },
+  //       {
+  //         $project: {
+  //           _id: 0,
+  //           warehouseId: "$_id",
+  //           warehouseName: "$warehouse.name",
+  //           kirim: 1,
+  //         },
+  //       },
+  //     ]);
+
+  //     const chiqim = await usedMaterials.aggregate([
+  //       {
+  //         $match: {
+  //           createdAt: { $gte: startDate, $lt: endDate },
+  //         },
+  //       },
+  //       {
+  //         $group: {
+  //           _id: {
+  //             warehouseId: "$warehouseId",
+  //             currency: "$currency",
+  //           },
+  //           materialTypes: { $sum: 1 },
+  //           totalQuantity: { $sum: "$quantity" },
+  //           totalPrice: { $sum: { $multiply: ["$price", "$quantity"] } },
+  //         },
+  //       },
+  //       {
+  //         $group: {
+  //           _id: "$_id.warehouseId",
+  //           kirim: {
+  //             $push: {
+  //               currency: "$_id.currency",
+  //               totalQuantity: "$totalQuantity",
+  //               totalPrice: "$totalPrice",
+  //               materialTypes: "$materialTypes",
+  //             },
+  //           },
+  //         },
+  //       },
+  //       {
+  //         $lookup: {
+  //           from: "mywarehouses",
+  //           localField: "_id",
+  //           foreignField: "_id",
+  //           as: "warehouse",
+  //         },
+  //       },
+  //       { $unwind: "$warehouse" },
+  //       {
+  //         $project: {
+  //           _id: 0,
+  //           warehouseId: "$_id",
+  //           warehouseName: "$warehouse.name",
+  //           kirim: 1,
+  //         },
+  //       },
+  //     ]);
+
+  //     // .find({
+  //     //   createdAt: { $gte: startDate, $lt: endDate },
+  //     // })
+  //     // .populate("warehouseId", "name");
+
+  //     return response.success(res, "Ombor kirim-chiqim ma'lumotlari", [
+  //       kirimData,
+  //       chiqim,
+  //     ]);
+  //   } catch (err) {
+  //     console.error("Ombor ma'lumotlari olishda xatolik:", err);
+  //     return response.serverError(res, err.message, err);
+  //   }
+  // }
+
   async getWhereHouseInfo(req, res) {
     const moment = require("moment-timezone");
 
     let startDate, endDate;
-
     if (req.query.startDate && req.query.endDate) {
       startDate = moment
         .tz(req.query.startDate, "YYYY-MM-DD", "Asia/Tashkent")
@@ -104,7 +243,7 @@ class DashboardController {
     }
 
     try {
-      const result = await alwaysMaterialStory.aggregate([
+      const kirimData = await alwaysMaterialStory.aggregate([
         {
           $match: {
             createdAt: { $gte: startDate, $lt: endDate },
@@ -120,27 +259,16 @@ class DashboardController {
             _id: {
               warehouseId: "$warehouseId",
               currency: "$currency",
-              materialId: "$_id",
             },
+            materialTypes: { $sum: 1 }, // Material turlarini sanash
             totalQuantity: { $sum: "$quantity" },
             totalPrice: { $sum: { $multiply: ["$price", "$quantity"] } },
           },
         },
         {
           $group: {
-            _id: {
-              warehouseId: "$_id.warehouseId",
-              currency: "$_id.currency",
-            },
-            materialTypes: { $sum: 1 },
-            totalQuantity: { $sum: "$totalQuantity" },
-            totalPrice: { $sum: "$totalPrice" },
-          },
-        },
-        {
-          $group: {
             _id: "$_id.warehouseId",
-            currencyBreakdown: {
+            kirim: {
               $push: {
                 currency: "$_id.currency",
                 totalQuantity: "$totalQuantity",
@@ -159,100 +287,96 @@ class DashboardController {
           },
         },
         { $unwind: "$warehouse" },
-
-        // Join with ishlabchiqarishTarixiForDate and calculate used materials
-        {
-          $lookup: {
-            from: "ishlabchiqarishTarixiForDate",
-            let: { warehouseId: "$_id" },
-            pipeline: [
-              {
-                $match: {
-                  createdAt: { $gte: startDate, $lt: endDate },
-                },
-              },
-              {
-                $lookup: {
-                  from: "productnormas",
-                  localField: "productNormaId",
-                  foreignField: "_id",
-                  as: "productNorma",
-                },
-              },
-              { $unwind: "$productNorma" },
-              { $unwind: "$productNorma.materials" },
-              {
-                $lookup: {
-                  from: "alwaysMaterialStorySchema", // yoki materials
-                  localField: "productNorma.materials.materialId",
-                  foreignField: "_id",
-                  as: "material",
-                },
-              },
-              { $unwind: "$material" },
-              {
-                $match: {
-                  $expr: {
-                    $eq: ["$$warehouseId", "$material.warehouseId"],
-                  },
-                },
-              },
-              {
-                $addFields: {
-                  usedQuantity: {
-                    $multiply: [
-                      "$productNorma.materials.quantity",
-                      "$quantity",
-                    ],
-                  },
-                  totalPrice: {
-                    $multiply: [
-                      "$productNorma.materials.quantity",
-                      "$quantity",
-                      "$material.price",
-                    ],
-                  },
-                  currency: "$material.currency",
-                },
-              },
-              {
-                $group: {
-                  _id: "$currency",
-                  totalPrice: { $sum: "$totalPrice" },
-                  uniqueMaterials: { $addToSet: "$material._id" },
-                },
-              },
-              {
-                $project: {
-                  _id: 0,
-                  currency: "$_id",
-                  totalPrice: 1,
-                  materialTypes: { $size: "$uniqueMaterials" },
-                },
-              },
-            ],
-            as: "usedMaterials",
-          },
-        },
-
-        // Final output
         {
           $project: {
             _id: 0,
             warehouseId: "$_id",
             warehouseName: "$warehouse.name",
-            currencyBreakdown: 1,
-            usedMaterials: 1,
+            kirim: 1,
           },
         },
       ]);
 
-      if (!result.length) {
-        return response.notFound(res, "Omborga material kirimi topilmadi");
+      const chiqimData = await usedMaterials.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: startDate, $lt: endDate },
+          },
+        },
+        {
+          $group: {
+            _id: {
+              warehouseId: "$warehouseId",
+              currency: "$currency",
+            },
+            materialTypes: { $sum: 1 },
+            totalQuantity: { $sum: "$quantity" },
+            totalPrice: { $sum: { $multiply: ["$price", "$quantity"] } },
+          },
+        },
+        {
+          $group: {
+            _id: "$_id.warehouseId",
+            chiqim: {
+              $push: {
+                currency: "$_id.currency",
+                totalQuantity: "$totalQuantity",
+                totalPrice: "$totalPrice",
+                materialTypes: "$materialTypes",
+              },
+            },
+          },
+        },
+        {
+          $lookup: {
+            from: "mywarehouses",
+            localField: "_id",
+            foreignField: "_id",
+            as: "warehouse",
+          },
+        },
+        { $unwind: "$warehouse" },
+        {
+          $project: {
+            _id: 0,
+            warehouseId: "$_id",
+            warehouseName: "$warehouse.name",
+            chiqim: 1,
+          },
+        },
+      ]);
+
+      // Kirim va chiqimlarni warehouseId bo‘yicha birlashtirish
+      const warehouseMap = new Map();
+
+      for (const kirim of kirimData) {
+        warehouseMap.set(kirim.warehouseId.toString(), {
+          warehouseId: kirim.warehouseId,
+          warehouseName: kirim.warehouseName,
+          kirim: kirim.kirim,
+          chiqim: [],
+        });
       }
 
-      return response.success(res, "Ombor ma'lumotlari", result);
+      for (const chiqim of chiqimData) {
+        const id = chiqim.warehouseId.toString();
+        if (warehouseMap.has(id)) {
+          warehouseMap.get(id).chiqim = chiqim.chiqim;
+        } else {
+          warehouseMap.set(id, {
+            warehouseId: chiqim.warehouseId,
+            warehouseName: chiqim.warehouseName,
+            kirim: [],
+            chiqim: chiqim.chiqim,
+          });
+        }
+      }
+
+      const result = Array.from(warehouseMap.values());
+
+      return response.success(res, "Ombor kirim-chiqim ma'lumotlari", result);
     } catch (err) {
+      console.error("Ombor ma'lumotlari olishda xatolik:", err);
       return response.serverError(res, err.message, err);
     }
   }

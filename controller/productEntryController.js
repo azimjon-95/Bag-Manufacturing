@@ -6,6 +6,7 @@ const mongoose = require("mongoose");
 const response = require("../utils/response");
 const moment = require("moment");
 const ishlabchiqarishTarixiForDate = require("../model/ishlabchiqarishTarixiForDateModel");
+const usedMaterialSchema = require("../model/usedMaterialsModel");
 
 const createProductEntry = async (req, res) => {
   const session = await mongoose.startSession();
@@ -131,6 +132,34 @@ const createProductEntry = async (req, res) => {
       );
 
       await materialStock.save({ session });
+
+      // Find unit data
+      const unitData = materialStock.units.find((u) => u.unit === norm.unit);
+      let price = 0;
+
+      if (unitData) {
+        if ("inPackage" in unitData && unitData.inPackage > 0) {
+          // inPackage mavjud bo‘lsa, 1 dona uchun narx hisoblash
+          price = materialStock.price / unitData.inPackage;
+        } else {
+          // inPackage mavjud emas (masalan: litr, kg) bo‘lsa, narx to‘g‘ridan-to‘g‘ri
+          price = materialStock.price;
+        }
+      }
+
+      await usedMaterialSchema.create(
+        [
+          {
+            materialId: norm.materialId,
+            quantity: requiredQty,
+            warehouseId: materialStock.warehouseId,
+            unit: norm.unit,
+            price: +price.toFixed(2),
+            currency: materialStock.currency,
+          },
+        ],
+        { session }
+      );
     }
 
     // TAYYOR MAHSULOT KIRIM ASOSIY
@@ -158,7 +187,8 @@ const createProductEntry = async (req, res) => {
 
     // ISHLAB CHIQARISH TARIXI SANA BO‘YICHA OLISH UCHUN
     const ishlabchiqarishTarixi = new ishlabchiqarishTarixiForDate({
-      _id: productEntryId, // ⬅️ _id ni ProductEntry dagi _id ga tenglab qo‘yayapmiz
+      // _id: productEntryId, // ⬅️ _id ni ProductEntry dagi _id ga tenglab qo‘yayapmiz
+      productEntryId,
       productNormaId,
       warehouseId,
       quantity: +quantity,
