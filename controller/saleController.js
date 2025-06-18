@@ -12,7 +12,10 @@ const createSale = async (req, res) => {
       const { products, customer, payment } = req.body;
 
       if (!products || !Array.isArray(products) || products.length === 0) {
-        throw new Error("Mahsulotlar ro'yxati bo'sh bo'lmasligi kerak");
+        return response.error(
+          res,
+          "Mahsulotlar ro'yxati bo'sh bo'lmasligi kerak"
+        );
       }
 
       const productPromises = products.map(({ _id }) =>
@@ -31,13 +34,17 @@ const createSale = async (req, res) => {
         const productData = exactProduct || exactImportedProduct;
 
         if (!productData) {
-          throw new Error(`ID: ${products[i]._id} bo'yicha mahsulot topilmadi`);
+          return response.error(
+            res,
+            `ID: ${products[i]._id} bo'yicha mahsulot topilmadi`
+          );
         }
 
         const requestedQuantity = products[i].quantity;
 
         if (productData.quantity < requestedQuantity) {
-          throw new Error(
+          return response.error(
+            res,
             `Mahsulot yetarli emas: ${productData.name || "Noma'lum mahsulot"}`
           );
         }
@@ -69,21 +76,21 @@ const createSale = async (req, res) => {
       );
 
       if (!newSale || newSale.length === 0) {
-        throw new Error("Sotuvni yaratishda xatolik");
+        return response.error(res, "Sotuvni yaratishda xatolik");
       }
 
-      const balance = await Balance.findOne().session(session);
-      if (!balance) {
-        throw new Error("Balans topilmadi");
-      }
+      // const balance = await Balance.findOne().session(session);
+      // if (!balance) {
+      //   return response.error(res, "Balans topilmadi");
+      // }
 
-      if (payment.currency === "dollar") {
-        balance.dollar += newSale[0].totalPrice;
-      } else if (payment.currency === "sum") {
-        balance.balance += newSale[0].totalPrice;
-      }
+      // if (payment.currency === "dollar") {
+      //   balance.dollar += newSale[0].totalPrice;
+      // } else if (payment.currency === "sum") {
+      //   balance.balance += newSale[0].totalPrice;
+      // }
 
-      await balance.save({ session });
+      // await balance.save({ session });
 
       // Faqat agar transaction muvaffaqiyatli bo‘lsa
       return response.created(
@@ -93,6 +100,7 @@ const createSale = async (req, res) => {
       );
     });
   } catch (error) {
+    console.log(error);
     await session.abortTransaction();
     return response.serverError(
       res,

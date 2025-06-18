@@ -21,52 +21,16 @@ class ExpenseController {
   // Barcha expenselarni olish with balance
 
   async createExpense(req, res) {
-    const session = await mongoose.startSession();
-    session.startTransaction();
     try {
       let data = req.body;
 
       // 1. Xarajatni yaratish
-      const newExpence = await Expense.create([data], { session });
-      if (!newExpence || newExpence.length === 0) {
-        await session.abortTransaction();
+      const newExpence = await Expense.create(data);
+      if (!newExpence) {
         return response.error(res, "Xarajat qo‘shilmadi");
       }
-
-      const expenseDoc = newExpence[0]; // create([data]) array qaytaradi
-
-      // 2. Balansni olish va tekshirish
-      let currentBalance = await Balance.findOne().session(session);
-      if (!currentBalance) {
-        currentBalance = await Balance.create([{ balance: 0, dollar: 0 }], {
-          session,
-        });
-        await session.abortTransaction();
-        return response.error(res, "Balansda yetarli mablag' yo'q");
-      } else {
-        currentBalance = Array.isArray(currentBalance)
-          ? currentBalance[0]
-          : currentBalance;
-      }
-      let chechBalance = req.body.currency === "sum" ? "balance" : "dollar";
-      if (expenseDoc.amount > currentBalance[chechBalance]) {
-        await session.abortTransaction();
-        return response.error(res, "Balansda yetarli mablag' yo'q");
-      }
-
-      // 3. Balansdan ayirish
-      currentBalance[chechBalance] -= expenseDoc.amount;
-      await currentBalance.save({ session });
-
-      // 5. Hammasi zo'r bo‘lsa, transactionni yakunlash
-      await session.commitTransaction();
-      session.endSession();
-
-      return response.success(res, "Xarajat qo'shildi", expenseDoc);
+      return response.success(res, "Xarajat qo'shildi", newExpence);
     } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
-
       if (error.name === "ValidationError") {
         let xatoXabari = "Xarajatni saqlashda xatolik yuz berdi: ";
         for (let field in error.errors) {
@@ -77,7 +41,7 @@ class ExpenseController {
         }
         return response.error(res, xatoXabari);
       }
-      return response.error(res, error.message);
+      return response.serverError(res, error.message);
     }
   }
 
